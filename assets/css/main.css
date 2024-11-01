@@ -97,9 +97,10 @@ input, select, textarea {
 	*, *:before, *:after {
 		box-sizing: inherit;
 	}
-
+/*保留权利*/
 	body {
-		background: #242943;
+
+		background-image:linear-gradient(to bottom, #242943 96%, #2cacd1);
 	}
 
 		body.is-preload *, body.is-preload *:before, body.is-preload *:after {
@@ -2837,19 +2838,19 @@ input, select, textarea {
 			}
 
 			.tiles article:nth-child(6n - 5):before {
-				background-color: #6fc3df;
+				background-color: #30D2BE;
 			}
 
 			.tiles article:nth-child(6n - 4):before {
-				background-color: #8d82c4;
+				background-color: #2580B3;
 			}
 
 			.tiles article:nth-child(6n - 3):before {
-				background-color: #ec8d81;
+				background-color: #7DE2FC;
 			}
 
 			.tiles article:nth-child(6n - 2):before {
-				background-color: #e7b788;
+				background-color: #ff9a44;
 			}
 
 			.tiles article:nth-child(6n - 1):before {
@@ -2934,7 +2935,7 @@ input, select, textarea {
 		.spotlights + * {
 			border-top: 0 !important;
 		}
-
+/*尾部introduce*/
 		.spotlights > section {
 			display: -moz-flex;
 			display: -webkit-flex;
@@ -2944,7 +2945,7 @@ input, select, textarea {
 			-webkit-flex-direction: row;
 			-ms-flex-direction: row;
 			flex-direction: row;
-			background-color: #2e3450;
+			background-color: #2a2f4a;
 		}
 
 			.spotlights > section > .image {
@@ -3007,6 +3008,7 @@ input, select, textarea {
 				-ms-flex-direction: row-reverse;
 				flex-direction: row-reverse;
 				background-color: #333856;
+				/*中间栏*/
 			}
 
 				.spotlights > section:nth-child(2n) > .content {
@@ -3116,11 +3118,12 @@ input, select, textarea {
 	}
 
 	#header {
+		/*头栏*/
 		display: -moz-flex;
 		display: -webkit-flex;
 		display: -ms-flex;
 		display: flex;
-		background-color: #2a2f4a;
+		background-color: #000000;
 		box-shadow: 0 0 0.25em 0 rgba(0, 0, 0, 0.15);
 		cursor: default;
 		font-weight: 600;
@@ -3263,21 +3266,21 @@ input, select, textarea {
 			box-shadow: none;
 			position: absolute;
 		}
-
+/*各种栏*/
 			#header.alt.style1 .logo strong {
-				color: #6fc3df;
+				color: #84fab0;
 			}
 
 			#header.alt.style2 .logo strong {
-				color: #8d82c4;
+				color: #00f2fe;
 			}
 
 			#header.alt.style3 .logo strong {
-				color: #ec8d81;
+				color: #D41872;
 			}
 
 			#header.alt.style4 .logo strong {
-				color: #e7b788;
+				color: #fff1eb;
 			}
 
 			#header.alt.style5 .logo strong {
@@ -3386,7 +3389,7 @@ input, select, textarea {
 		-webkit-align-items: center;
 		-ms-align-items: center;
 		align-items: center;
-		background-image: url("../../images/banner.jpg");
+		background-image: url("../../images/back.png");
 		display: -moz-flex;
 		display: -webkit-flex;
 		display: -ms-flex;
@@ -3416,7 +3419,8 @@ input, select, textarea {
 			-ms-transition-delay: 0.75s;
 			transition-delay: 0.75s;
 			pointer-events: none;
-			background-color: #242943;
+			/*头*/
+			background-image:linear-gradient(-225deg,#D4FFEC 0%, #57F2CC 48%, #4596FB 100%);
 			content: '';
 			display: block;
 			height: 100%;
@@ -3495,21 +3499,21 @@ input, select, textarea {
 			#banner.major.alt {
 				opacity: 0.75;
 			}
-
+/*各种栏*/
 		#banner.style1:after {
-			background-color: #6fc3df;
+			background-color: #84fab0;
 		}
 
 		#banner.style2:after {
-			background-color: #8d82c4;
+			background-color: #00f2fe;
 		}
 
 		#banner.style3:after {
-			background-color: #ec8d81;
+			background-color: #D41872;
 		}
 
 		#banner.style4:after {
-			background-color: #e7b788;
+			background-color: #fff1eb;
 		}
 
 		#banner.style5:after {
@@ -3593,9 +3597,9 @@ input, select, textarea {
 		}
 
 /* Main */
-
+/*introduce*/
 	#main {
-		background-color: #2a2f4a;
+		background-color: #242943;
 	}
 
 		#main > * {

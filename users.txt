@@ -1,0 +1,13 @@
+{
+  "Caozexin": {
+    "password": "2e5b7ddfd6cce2f01ccda55f4de545d0a48d473881e990f0cd5154385bc7e773",
+    "email": "76234297@qq.com",
+    "verification_code": "582818",
+    "verified": true,
+    "reset_code": null,
+    "favorites": ["", "上海市闵行区都市路1905弄"],
+    "theme": "科技蓝",
+    "history": ["上海市闵行区都市路1905弄"],
+    "created_at": "2023-01-01 00:00:00"  // 请替换为实际创建时间
+  }
+}

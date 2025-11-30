@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>媒体文件浏览器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 0;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .description {
+            font-size: 1.1rem;
+            max-width: 800px;
+            margin: 0 auto 20px;
+            line-height: 1.6;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .setup-instructions {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .setup-instructions h2 {
+            margin-bottom: 10px;
+            color: #ffcc00;
+        }
+        
+        .setup-instructions code {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+        
+        .media-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .media-item:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .media-content {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            display: block;
+            cursor: pointer;
+        }
+        
+        .media-info {
+            padding: 15px;
+        }
+        
+        .media-title {
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+            font-weight: 600;
+            word-break: break-all;
+        }
+        
+        .media-meta {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .filter-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+        
+        .filter-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .filter-btn.active {
+            background: rgba(255, 255, 255, 0.4);
+            font-weight: bold;
+        }
+        
+        .no-media {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            grid-column: 1 / -1;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        
+        .modal-content {
+            max-width: 90%;
+            max-height: 80%;
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+        }
+        
+        .modal-info {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            text-align: center;
+            border-radius: 8px;
+            max-width: 90%;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 40px;
+            cursor: pointer;
+            z-index: 1001;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            margin-top: 40px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .media-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>媒体文件浏览器</h1>
+            <p class="description">此页面显示当前目录下的指定图片和视频文件。点击任意媒体文件可查看大图或播放视频。</p>
+            
+            <div class="setup-instructions">
+                <h2>如何添加您的媒体文件</h2>
+                <p>1. 将您的图片和视频文件放在与此HTML文件相同的文件夹中</p>
+                <p>2. 在代码中找到 <code>mediaFiles</code> 数组</p>
+                <p>3. 按照格式添加您的文件名：<code>{ name: "您的文件名.jpg", type: "image" }</code></p>
+                <p>4. 保存文件并在浏览器中刷新页面</p>
+                <p><strong>注意：</strong>确保文件名和扩展名完全匹配，包括大小写</p>
+            </div>
+        </header>
+        
+        <div class="controls">
+            <button class="filter-btn active" data-filter="all">全部</button>
+            <button class="filter-btn" data-filter="image">图片</button>
+            <button class="filter-btn" data-filter="video">视频</button>
+        </div>
+        
+        <div class="media-grid" id="mediaGrid">
+            <!-- 媒体文件将在这里动态生成 -->
+        </div>
+        
+        <footer>
+            <p>媒体文件浏览器 &copy; 2023 | 当前路径: <span id="currentPath">/</span></p>
+        </footer>
+    </div>
+    
+    <div class="modal" id="mediaModal">
+        <span class="close-btn" id="closeModal">&times;</span>
+        <img class="modal-content" id="modalMedia">
+        <video class="modal-content" id="modalVideo" controls></video>
+        <div class="modal-info" id="modalInfo"></div>
+    </div>
+
+    <script>
+        // ============================================
+        // 在这里添加您的媒体文件
+        // 将下面的文件名替换为您实际的文件名
+        // ============================================
+        const mediaFiles = [
+            // 图片文件
+            { name: "1.jpg", type: "image" },
+            { name: "image2.jpg", type: "image" },
+            { name: "image3.png", type: "image" },
+            
+            // 视频文件
+            { name: "video1.mp4", type: "video" },
+            { name: "video2.mp4", type: "video" }
+        ];
+        // ============================================
+        // 注意：确保这些文件与HTML文件在同一目录下
+        // ============================================
+        
+        // 获取DOM元素
+        const mediaGrid = document.getElementById('mediaGrid');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const modal = document.getElementById('mediaModal');
+        const modalMedia = document.getElementById('modalMedia');
+        const modalVideo = document.getElementById('modalVideo');
+        const modalInfo = document.getElementById('modalInfo');
+        const closeModal = document.getElementById('closeModal');
+        const currentPath = document.getElementById('currentPath');
+        
+        // 设置当前路径
+        currentPath.textContent = window.location.pathname || "/";
+        
+        // 渲染媒体文件
+        function renderMediaFiles(filter = 'all') {
+            mediaGrid.innerHTML = '';
+            
+            const filteredFiles = mediaFiles.filter(file => {
+                if (filter === 'all') return true;
+                return file.type === filter;
+            });
+            
+            if (filteredFiles.length === 0) {
+                mediaGrid.innerHTML = '<div class="no-media">没有找到匹配的媒体文件</div>';
+                return;
+            }
+            
+            filteredFiles.forEach(file => {
+                const mediaItem = document.createElement('div');
+                mediaItem.className = 'media-item';
+                mediaItem.dataset.type = file.type;
+                
+                const isImage = file.type === 'image';
+                
+                mediaItem.innerHTML = `
+                    ${isImage ? 
+                        `<img src="${file.name}" alt="${file.name}" class="media-content">` : 
+                        `<video class="media-content"><source src="${file.name}" type="video/mp4">您的浏览器不支持视频播放</video>`
+                    }
+                    <div class="media-info">
+                        <div class="media-title">${file.name}</div>
+                        <div class="media-meta">
+                            <span>${file.type === 'image' ? '图片' : '视频'}</span>
+                            <span>${getFileExtension(file.name)}</span>
+                        </div>
+                    </div>
+                `;
+                
+                // 添加点击事件打开模态框
+                const mediaContent = mediaItem.querySelector('.media-content');
+                mediaContent.addEventListener('click', () => openModal(file));
+                
+                mediaGrid.appendChild(mediaItem);
+            });
+        }
+        
+        // 获取文件扩展名
+        function getFileExtension(filename) {
+            return filename.split('.').pop().toUpperCase();
+        }
+        
+        // 打开模态框
+        function openModal(file) {
+            const isImage = file.type === 'image';
+            
+            if (isImage) {
+                modalMedia.src = file.name;
+                modalMedia.style.display = 'block';
+                modalVideo.style.display = 'none';
+            } else {
+                modalVideo.src = file.name;
+                modalVideo.style.display = 'block';
+                modalMedia.style.display = 'none';
+            }
+            
+            modalInfo.textContent = file.name;
+            modal.style.display = 'flex';
+        }
+        
+        // 关闭模态框
+        closeModal.addEventListener('click', () => {
+            modal.style.display = 'none';
+            modalVideo.pause();
+        });
+        
+        // 点击模态框外部关闭
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+                modalVideo.pause();
+            }
+        });
+        
+        // 筛选按钮事件
+        filterButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                renderMediaFiles(button.dataset.filter);
+            });
+        });
+        
+        // 初始渲染
+        renderMediaFiles();
+    </script>
+</body>
+</html>

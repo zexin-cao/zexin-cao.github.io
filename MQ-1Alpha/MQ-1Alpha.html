@@ -539,7 +539,7 @@
             let modelLoaded = false;
             const loader = new STLLoader();
             loader.load('nozzle.stl', (geometry) => {
-                const material = new THREE.MeshStandardMaterial({ color: 0xf15a24, roughness: 0.4, metalness: 0.7, emissive: new THREE.Color(0x441100), emissiveIntensity: 0.1 });
+                const material = new THREE.MeshStandardMaterial({ color: 0xFFB7C5, roughness: 0.4, metalness: 0.7, emissive: new THREE.Color(0x441100), emissiveIntensity: 0.1 });
                 const mesh = new THREE.Mesh(geometry, material);
                 mesh.castShadow = true;
                 mesh.receiveShadow = true;

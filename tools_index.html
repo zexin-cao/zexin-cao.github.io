@@ -1,0 +1,536 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN">
+	<head>
+		<title>焰灵-炽锌 · 固体火箭发动机工具集</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="assets/css/main.css" />
+		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+
+		<style>
+			/* ============ 顶栏：品牌 + 语言切换 ============ */
+			#header{
+				justify-content:space-between;
+				padding:0 2em;
+			}
+			#header .brand{
+				font-size:.82em;
+				font-weight:700;
+				letter-spacing:.22em;
+				text-transform:uppercase;
+				color:#fff;
+				white-space:nowrap;
+			}
+			#header .lang-switch{
+				display:flex;
+				gap:.4em;
+				align-items:center;
+			}
+			#header .lang-switch button{
+				background:transparent;
+				border:1px solid rgba(255,255,255,.25);
+				color:rgba(255,255,255,.6);
+				font-family:inherit;
+				font-size:.66em;
+				letter-spacing:.18em;
+				text-transform:uppercase;
+				line-height:1;
+				padding:.6em 1.1em;
+				cursor:pointer;
+				transition:border-color .2s ease, color .2s ease, background .2s ease;
+			}
+			#header .lang-switch button:hover{
+				border-color:#9bf1ff;
+				color:#9bf1ff;
+			}
+			#header .lang-switch button.active{
+				border-color:#9bf1ff;
+				background:#9bf1ff;
+				color:#06090f;
+			}
+
+			/* ============ 工具卡片网格 ============ */
+			.tool-grid{
+				display:grid;
+				grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+				gap:1.75em;
+				margin-top:1.75em;
+			}
+			.tool-card{
+				display:flex;
+				flex-direction:column;
+				padding:2em;
+				border:1px solid rgba(255,255,255,.18);
+				background:rgba(255,255,255,.02);
+				transition:border-color .25s ease, transform .25s ease, background .25s ease;
+			}
+			.tool-card:hover{
+				border-color:#9bf1ff;
+				background:rgba(255,255,255,.05);
+				transform:translateY(-4px);
+			}
+			.tool-card .tag{
+				display:inline-block;
+				align-self:flex-start;
+				font-size:.62em;
+				font-weight:600;
+				letter-spacing:.24em;
+				text-transform:uppercase;
+				color:#9bf1ff;
+				border:1px solid currentColor;
+				padding:.4em .9em;
+				margin-bottom:1.2em;
+				line-height:1;
+			}
+			.tool-card .tag.warm{ color:#ffb37a; }
+			.tool-card h3{
+				margin:0 0 .45em;
+				text-transform:none;
+				letter-spacing:0;
+				font-size:1.4em;
+				line-height:1.25;
+			}
+			.tool-card .sub{
+				margin:0 0 1.1em;
+				font-size:.82em;
+				letter-spacing:.06em;
+				color:rgba(255,255,255,.45);
+			}
+			.tool-card p{
+				margin:0 0 1.2em;
+				font-size:.9em;
+				line-height:1.75;
+				color:rgba(255,255,255,.72);
+			}
+			.tool-card ul.feats{
+				list-style:none;
+				padding:0;
+				margin:0 0 1.9em;
+				font-size:.85em;
+				line-height:1.7;
+				color:rgba(255,255,255,.6);
+			}
+			.tool-card ul.feats li{
+				position:relative;
+				padding:.3em 0 .3em 1.5em;
+				border:0;
+			}
+			.tool-card ul.feats li:before{
+				content:'▸';
+				position:absolute;
+				left:.1em;
+				top:.3em;
+				color:#9bf1ff;
+			}
+			.tool-card .button{
+				margin-top:auto;
+				align-self:flex-start;
+			}
+
+			/* ============ 使用流程 ============ */
+			ol.steps{
+				list-style:none;
+				counter-reset:step;
+				padding:0;
+				margin:1.75em 0 0;
+			}
+			ol.steps li{
+				counter-increment:step;
+				position:relative;
+				padding:.9em 0 .9em 3.4em;
+				border-top:1px solid rgba(255,255,255,.12);
+				border-bottom:0;
+				font-size:.92em;
+				line-height:1.75;
+				color:rgba(255,255,255,.72);
+			}
+			ol.steps li:last-child{
+				border-bottom:1px solid rgba(255,255,255,.12);
+			}
+			ol.steps li:before{
+				content:counter(step,decimal-leading-zero);
+				position:absolute;
+				left:0;
+				top:.85em;
+				font-family:'Courier New',monospace;
+				font-size:.85em;
+				font-weight:700;
+				letter-spacing:.1em;
+				color:#9bf1ff;
+				opacity:.85;
+			}
+			ol.steps li b{
+				color:#fff;
+				font-weight:600;
+			}
+			ol.steps li code{
+				font-family:'Courier New',monospace;
+				font-size:.88em;
+				color:#9bf1ff;
+				background:rgba(255,255,255,.06);
+				border:1px solid rgba(255,255,255,.12);
+				padding:.1em .45em;
+				border-radius:2px;
+			}
+
+			/* ============ 小提示条 ============ */
+			.hint{
+				margin-top:1.5em;
+				padding:1.1em 1.4em;
+				border-left:3px solid #ffb37a;
+				background:rgba(255,179,122,.07);
+				font-size:.84em;
+				line-height:1.8;
+				color:rgba(255,255,255,.72);
+			}
+			.hint b{ color:#ffb37a; }
+
+			/* ============ 技术要点标签 ============ */
+			.chips{
+				display:flex;
+				flex-wrap:wrap;
+				gap:.5em;
+				margin-top:1.5em;
+			}
+			.chips span{
+				font-size:.72em;
+				letter-spacing:.12em;
+				text-transform:uppercase;
+				color:rgba(255,255,255,.55);
+				border:1px solid rgba(255,255,255,.18);
+				padding:.4em .85em;
+				line-height:1;
+				transition:color .2s ease, border-color .2s ease;
+			}
+			.chips span:hover{
+				color:#9bf1ff;
+				border-color:#9bf1ff;
+			}
+
+			@media screen and (max-width:736px){
+				#header{ padding:0 1.25em; }
+				#header .brand{ font-size:.72em; letter-spacing:.16em; }
+				#header .lang-switch button{ padding:.55em .85em; }
+			}
+		</style>
+	</head>
+	<body class="is-preload">
+
+		<!-- Wrapper -->
+			<div id="wrapper">
+
+				<!-- Header -->
+					<header id="header" class="alt">
+						<div class="brand" data-i18n="brand">焰灵-炽锌</div>
+						<div class="lang-switch">
+							<button type="button" data-lang="zh" class="active">中文</button>
+							<button type="button" data-lang="en">EN</button>
+						</div>
+					</header>
+
+				<!-- Banner -->
+					<section id="banner" class="major">
+						<div class="inner">
+							<header class="major">
+								<h1 data-i18n="banner.h1">固体火箭发动机工具集</h1>
+							</header>
+							<div class="content">
+								<p data-i18n-html="banner.p">
+									从推进剂配方到激波胞格，一条链路走完设计与验证。
+								</p>
+								<ul class="actions">
+									<li><a href="rocket_tools/SRM.html" class="button primary" data-i18n="banner.btn1">进入性能计算</a></li>
+									<li><a href="rocket_tools/engine_simulator.html" class="button" data-i18n="banner.btn2">进入羽流可视化</a></li>
+								</ul>
+							</div>
+						</div>
+					</section>
+
+				<!-- Main -->
+					<div id="main">
+
+						<!-- One：工具入口 -->
+							<section id="one">
+								<div class="inner">
+									<header class="major">
+										<h2 data-i18n="tools.title">工具入口</h2>
+									</header>
+									<p class="section-lead" data-i18n="tools.desc">
+										两个页面相互独立，也可以配合使用：先用计算器算出发动机的工作点与喷管几何，
+										再把结果带进羽流模拟器，直观看到不同室压与环境压力下的激波胞格形态。
+									</p>
+
+									<div class="tool-grid">
+
+										<!-- 卡片 1 -->
+										<article class="tool-card">
+											<span class="tag" data-i18n="card1.tag">性能计算</span>
+											<h3 data-i18n-html="card1.h3">固体火箭发动机<br />性能计算</h3>
+											<p class="sub" data-i18n="card1.sub">Version 2023 · Richard A. Nakka</p>
+											<p data-i18n="card1.p">
+												基于标准热力学与流体流动方程，结合糖类推进剂经验燃速参数，
+												完成燃烧室压力、推力、总冲与等级的完整预测。
+											</p>
+											<ul class="feats">
+												<li data-i18n="card1.f1">数据和喷燃比：Kn 分段表、肉厚、燃面随行程演化</li>
+												<li data-i18n="card1.f2">压强：迭代求解室压、燃速、燃尽时间与流量平衡</li>
+												<li data-i18n="card1.f3">性能：推力系数、推力曲线、总冲、比冲</li>
+												<li data-i18n="card1.f4">喷管设计：收敛/扩张半角与收敛段、扩张段长度</li>
+												<li data-i18n="card1.f5">输出：可直接用于弹道仿真软件的汇总数据</li>
+											</ul>
+											<a href="rocket_tools/SRM.html" class="button primary" data-i18n="card1.btn">打开计算器</a>
+										</article>
+
+										<!-- 卡片 2 -->
+										<article class="tool-card">
+											<span class="tag warm" data-i18n="card2.tag">流场可视化</span>
+											<h3 data-i18n-html="card2.h3">喷管羽流<br />马赫环物理可视化</h3>
+											<p class="sub" data-i18n="card2.sub">等熵超声速膨胀 · 激波胞格驱动</p>
+											<p data-i18n="card2.p">
+												完全气体等熵流 + 面积-马赫关系 + Prandtl-Meyer 膨胀波模型，
+												实时渲染喷管内部流场与出口羽流，并叠加激波胞格形成的马赫环。
+											</p>
+											<ul class="feats">
+												<li data-i18n="card2.f1">载入发动机参数文件，自动识别喷管几何</li>
+												<li data-i18n="card2.f2">室压连续可调，一键压力扫描观察工况切换</li>
+												<li data-i18n="card2.f3">海平面 / 高空 / 真空三种环境压力预设</li>
+												<li data-i18n="card2.f4">欠膨胀 · 最佳膨胀 · 过膨胀三态自动识别</li>
+												<li data-i18n="card2.f5">胞格长度按 L_cell/Dₑ ≈ 1.15·√(NPR−1) 估算并逐级衰减</li>
+											</ul>
+											<a href="rocket_tools/engine_simulator.html" class="button" data-i18n="card2.btn">打开模拟器</a>
+										</article>
+
+									</div>
+
+									<div class="hint" data-i18n-html="hint">
+										<b>提示：</b>羽流模拟器需要读取表格中的喷管几何与燃气参数。
+										若暂无参数文件，它会自动使用内置的默认发动机数据，可直接拖动滑杆体验。
+									</div>
+								</div>
+							</section>
+
+						<!-- Two：使用流程 -->
+							<section id="two">
+								<div class="inner">
+									<header class="major">
+										<h2 data-i18n="flow.title">使用流程</h2>
+									</header>
+
+									<ol class="steps">
+										<li data-i18n-html="flow.s1">
+											<b>填写输入</b> —— 在性能计算页填入燃烧室直径与长度、推进剂类型、
+											药柱外径 / 孔径 / 段长，以及喉部面积与设计目标室压。
+										</li>
+										<li data-i18n-html="flow.s2">
+											<b>求解</b> —— 点击页面顶部的「求解」按钮，查看最大室压、总冲、
+											推力系数、比冲与发动机等级，并核对喷管设计页给出的收敛段与扩张段长度。
+										</li>
+										<li data-i18n-html="flow.s3">
+											<b>可视化</b> —— 打开羽流模拟器，载入发动机参数文件，
+											或直接使用内置默认参数，调节室压与环境压力。
+										</li>
+										<li data-i18n-html="flow.s4">
+											<b>判读工况</b> —— 面板显示 <code>NPR = Pₑ/Pₐ</code>：
+											大于 1 为欠膨胀，羽流中出现马赫环并标注序号；
+											小于 1 为过膨胀，出现斜激波与马赫盘。
+										</li>
+									</ol>
+
+									<div class="chips">
+										<span data-i18n="chip.1">等熵流</span>
+										<span data-i18n="chip.2">面积-马赫关系</span>
+										<span data-i18n="chip.3">Prandtl-Meyer 膨胀</span>
+										<span data-i18n="chip.4">激波胞格</span>
+										<span data-i18n="chip.5">推力系数</span>
+										<span data-i18n="chip.6">两相流修正</span>
+										<span data-i18n="chip.7">侵蚀燃烧模型</span>
+									</div>
+								</div>
+							</section>
+
+					</div>
+
+				<!-- Footer -->
+					<footer id="footer">
+						<div class="inner">
+							<ul class="icons"></ul>
+							<ul class="copyright">
+								<li data-i18n="footer.copy">© 焰灵-炽锌 Cozinkxgen. 保留所有权利。</li>
+								<li data-i18n="footer.credit">Version 2023 · Richard A. Nakka</li>
+							</ul>
+						</div>
+					</footer>
+
+			</div>
+
+		<!-- Scripts -->
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/jquery.scrolly.min.js"></script>
+			<script src="assets/js/jquery.scrollex.min.js"></script>
+			<script src="assets/js/browser.min.js"></script>
+			<script src="assets/js/breakpoints.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<script src="assets/js/main.js"></script>
+
+			<script>
+			/* ============================================================
+			   双语词条
+			   ============================================================ */
+			const I18N = {
+				zh: {
+					brand: '焰灵-炽锌',
+
+					'banner.h1': '固体火箭发动机工具集',
+					'banner.p': '从推进剂配方到激波胞格，一条链路走完设计与验证。',
+					'banner.btn1': '进入性能计算',
+					'banner.btn2': '进入羽流可视化',
+
+					'tools.title': '工具入口',
+					'tools.desc': '两个页面相互独立，也可以配合使用：先用计算器算出发动机的工作点与喷管几何，再把结果带进羽流模拟器，直观看到不同室压与环境压力下的激波胞格形态。',
+
+					'card1.tag': '性能计算',
+					'card1.h3': '固体火箭发动机<br />性能计算',
+					'card1.sub': 'Version 2023 · Richard A. Nakka',
+					'card1.p': '基于标准热力学与流体流动方程，结合糖类推进剂经验燃速参数，完成燃烧室压力、推力、总冲与等级的完整预测。',
+					'card1.f1': '数据和喷燃比：Kn 分段表、肉厚、燃面随行程演化',
+					'card1.f2': '压强：迭代求解室压、燃速、燃尽时间与流量平衡',
+					'card1.f3': '性能：推力系数、推力曲线、总冲、比冲',
+					'card1.f4': '喷管设计：收敛/扩张半角与收敛段、扩张段长度',
+					'card1.f5': '输出：可直接用于弹道仿真软件的汇总数据',
+					'card1.btn': '打开计算器',
+
+					'card2.tag': '流场可视化',
+					'card2.h3': '喷管羽流<br />马赫环物理可视化',
+					'card2.sub': '等熵超声速膨胀 · 激波胞格驱动',
+					'card2.p': '完全气体等熵流 + 面积-马赫关系 + Prandtl-Meyer 膨胀波模型，实时渲染喷管内部流场与出口羽流，并叠加激波胞格形成的马赫环。',
+					'card2.f1': '载入发动机参数文件，自动识别喷管几何',
+					'card2.f2': '室压连续可调，一键压力扫描观察工况切换',
+					'card2.f3': '海平面 / 高空 / 真空三种环境压力预设',
+					'card2.f4': '欠膨胀 · 最佳膨胀 · 过膨胀三态自动识别',
+					'card2.f5': '胞格长度按 L_cell/Dₑ ≈ 1.15·√(NPR−1) 估算并逐级衰减',
+					'card2.btn': '打开模拟器',
+
+					'hint': '<b>提示：</b>羽流模拟器需要读取表格中的喷管几何与燃气参数。若暂无参数文件，它会自动使用内置的默认发动机数据，可直接拖动滑杆体验。',
+
+					'flow.title': '使用流程',
+					'flow.s1': '<b>填写输入</b> —— 在性能计算页填入燃烧室直径与长度、推进剂类型、药柱外径 / 孔径 / 段长，以及喉部面积与设计目标室压。',
+					'flow.s2': '<b>求解</b> —— 点击页面顶部的「求解」按钮，查看最大室压、总冲、推力系数、比冲与发动机等级，并核对喷管设计页给出的收敛段与扩张段长度。',
+					'flow.s3': '<b>可视化</b> —— 打开羽流模拟器，载入发动机参数文件，或直接使用内置默认参数，调节室压与环境压力。',
+					'flow.s4': '<b>判读工况</b> —— 面板显示 <code>NPR = Pₑ/Pₐ</code>：大于 1 为欠膨胀，羽流中出现马赫环并标注序号；小于 1 为过膨胀，出现斜激波与马赫盘。',
+
+					'chip.1': '等熵流',
+					'chip.2': '面积-马赫关系',
+					'chip.3': 'Prandtl-Meyer 膨胀',
+					'chip.4': '激波胞格',
+					'chip.5': '推力系数',
+					'chip.6': '两相流修正',
+					'chip.7': '侵蚀燃烧模型',
+
+					'footer.copy': '© 焰灵-炽锌 Cozinkxgen. 保留所有权利。',
+					'footer.credit': 'Version 2023 · Richard A. Nakka'
+				},
+
+				en: {
+					brand: 'Cozinkxgen',
+
+					'banner.h1': 'Solid Rocket Motor Toolkit',
+					'banner.p': 'From propellant formulation to shock cells — design and verification in one chain.',
+					'banner.btn1': 'Performance Calculator',
+					'banner.btn2': 'Plume Visualizer',
+
+					'tools.title': 'Tool Entrances',
+					'tools.desc': 'The two pages work independently or together: first compute the motor operating point and nozzle geometry, then bring the results into the plume simulator to see how the shock cells respond to chamber and ambient pressure.',
+
+					'card1.tag': 'Performance',
+					'card1.h3': 'Solid Rocket Motor<br />Performance Calculation',
+					'card1.sub': 'Version 2023 · Richard A. Nakka',
+					'card1.p': 'Built on standard thermodynamic and fluid-flow equations with empirical burn-rate parameters for sugar propellants, delivering a complete prediction of chamber pressure, thrust, total impulse and motor class.',
+					'card1.f1': 'Data &amp; Kn: Kn table, web thickness, burning-area evolution',
+					'card1.f2': 'Pressure: iterative chamber pressure, burn rate, burn time and mass balance',
+					'card1.f3': 'Performance: thrust coefficient, thrust curve, total impulse, Isp',
+					'card1.f4': 'Nozzle design: convergent / divergent half-angles and section lengths',
+					'card1.f5': 'Output: summary data ready for trajectory simulation software',
+					'card1.btn': 'Open Calculator',
+
+					'card2.tag': 'Visualization',
+					'card2.h3': 'Nozzle Plume &amp;<br />Mach Diamond Visualization',
+					'card2.sub': 'Isentropic supersonic expansion · shock-cell driven',
+					'card2.p': 'Perfect-gas isentropic flow plus the area–Mach relation and Prandtl–Meyer expansion, rendering the internal nozzle flow field and the exhaust plume in real time, with shock-cell Mach diamonds overlaid.',
+					'card2.f1': 'Load a motor parameter file to auto-detect nozzle geometry',
+					'card2.f2': 'Continuously adjustable chamber pressure with one-click pressure sweep',
+					'card2.f3': 'Sea level / high altitude / vacuum ambient pressure presets',
+					'card2.f4': 'Automatic detection of under-expanded, matched and over-expanded regimes',
+					'card2.f5': 'Cell length estimated by L_cell/Dₑ ≈ 1.15·√(NPR−1) with progressive decay',
+					'card2.btn': 'Open Simulator',
+
+					'hint': '<b>Note:</b> The plume simulator reads nozzle geometry and gas properties from a spreadsheet. If no file is available, it falls back to built-in default motor data, so you can start exploring right away.',
+
+					'flow.title': 'Workflow',
+					'flow.s1': '<b>Enter inputs</b> — In the performance calculator, fill in chamber diameter and length, propellant type, grain OD / ID / segment length, throat area and target chamber pressure.',
+					'flow.s2': '<b>Solve</b> — Click the “Solve” button at the top of any page to see peak chamber pressure, total impulse, thrust coefficient, specific impulse and motor class, then check the nozzle design page for convergent and divergent lengths.',
+					'flow.s3': '<b>Visualize</b> — Open the plume simulator, load a motor parameter file, or use the built-in defaults, and adjust chamber and ambient pressure.',
+					'flow.s4': '<b>Read the regime</b> — The panel shows <code>NPR = Pₑ/Pₐ</code>: above 1 is under-expanded, with Mach diamonds labelled in the plume; below 1 is over-expanded, showing oblique shocks and a Mach disk.',
+
+					'chip.1': 'Isentropic flow',
+					'chip.2': 'Area–Mach relation',
+					'chip.3': 'Prandtl–Meyer expansion',
+					'chip.4': 'Shock cells',
+					'chip.5': 'Thrust coefficient',
+					'chip.6': 'Two-phase correction',
+					'chip.7': 'Erosive burning',
+
+					'footer.copy': '© Cozinkxgen 焰灵-炽锌. All rights reserved.',
+					'footer.credit': 'Version 2023 · Richard A. Nakka'
+				}
+			};
+
+			/* ============================================================
+			   应用语言
+			   ============================================================ */
+			let currentLang = 'zh';
+
+			function applyLang(lang){
+				const dict = I18N[lang];
+				if (!dict) return;
+				currentLang = lang;
+
+				document.documentElement.lang = (lang === 'zh' ? 'zh-CN' : 'en');
+
+				document.querySelectorAll('[data-i18n]').forEach(el => {
+					const key = el.getAttribute('data-i18n');
+					const val = dict[key];
+					if (val !== undefined) el.textContent = val;
+				});
+
+				document.querySelectorAll('[data-i18n-html]').forEach(el => {
+					const key = el.getAttribute('data-i18n-html');
+					const val = dict[key];
+					if (val !== undefined) el.innerHTML = val;
+				});
+
+				document.querySelectorAll('#header .lang-switch button').forEach(b => {
+					b.classList.toggle('active', b.dataset.lang === lang);
+				});
+
+				try { localStorage.setItem('cozinkxgen-lang', lang); } catch (e) {}
+			}
+
+			/* 语言按钮 */
+			document.querySelectorAll('#header .lang-switch button').forEach(btn => {
+				btn.addEventListener('click', () => applyLang(btn.dataset.lang));
+			});
+
+			/* 初始化：优先读取本地记忆 */
+			(function initLang(){
+				let saved = null;
+				try { saved = localStorage.getItem('cozinkxgen-lang'); } catch (e) {}
+				if (!saved) {
+					const nav = (navigator.language || 'zh').toLowerCase();
+					saved = nav.startsWith('zh') ? 'zh' : 'en';
+				}
+				applyLang(saved === 'en' ? 'en' : 'zh');
+			})();
+			</script>
+
+	</body>
+</html>

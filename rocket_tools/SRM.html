@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SRM 2023 - 固体火箭发动机性能计算</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: "Microsoft YaHei","PingFang SC",Arial,sans-serif; margin:0; padding:0; background:#f0f2f5; color:#222; font-size:13px; }
+  header { background:linear-gradient(135deg,#1e3c72,#2a5298); color:#fff; padding:18px 24px; box-shadow:0 2px 8px rgba(0,0,0,.2); }
+  header h1 { margin:0 0 4px; font-size:22px; }
+  header p { margin:0; font-size:13px; opacity:.85; }
+  nav.tabs { display:flex; flex-wrap:wrap; background:#fff; border-bottom:2px solid #2a5298; position:sticky; top:0; z-index:100; box-shadow:0 2px 4px rgba(0,0,0,.08); }
+  nav.tabs button { background:none; border:none; padding:10px 16px; cursor:pointer; font-size:13px; font-family:inherit; color:#444; border-bottom:3px solid transparent; transition:all .15s; }
+  nav.tabs button:hover { background:#eef3fb; color:#1e3c72; }
+  nav.tabs button.active { color:#1e3c72; border-bottom-color:#2a5298; font-weight:bold; background:#eef3fb; }
+  main { padding:16px; }
+  section.sheet { display:none; }
+  section.sheet.active { display:block; }
+  .sheet-title { font-size:17px; font-weight:bold; color:#1e3c72; margin:0 0 12px; padding-bottom:6px; border-bottom:1px solid #ccd6e4; }
+  .table-wrap { overflow:auto; max-height:78vh; border:1px solid #ccd6e4; border-radius:4px; background:#fff; margin-bottom:20px; }
+  table { border-collapse:collapse; font-size:12px; white-space:nowrap; }
+  th,td { border:1px solid #d8dee6; padding:3px 7px; vertical-align:top; text-align:left; }
+  thead th { background:#e8eef7; position:sticky; top:0; z-index:5; font-weight:bold; color:#1e3c72; }
+  tbody tr:nth-child(even) { background:#fafbfd; }
+  tbody tr:hover { background:#eef3fb; }
+  .num { text-align:right; font-family:Consolas,monospace; }
+  .note { background:#fffbe6; border-left:4px solid #f0b400; padding:8px 12px; margin:0 0 12px; border-radius:3px; font-size:12.5px; color:#665200; line-height:1.6; }
+  footer { text-align:center; padding:20px; color:#888; font-size:12px; }
+
+  /* 输入单元格 —— 蓝色轮廓 + 蓝色文本 */
+  input.inp, select.inp {
+    border:1.5px solid #4a90d9; background:#f0f7ff; color:#0b4a8c;
+    font-family:Consolas,monospace; font-size:12px; padding:2px 5px;
+    border-radius:3px; width:100px; text-align:right;
+  }
+  input.inp::placeholder { color:#9bb8d8; font-style:italic; }
+  select.inp { text-align:left; width:auto; min-width:120px; }
+  input.inp:focus, select.inp:focus { outline:2px solid #2a5298; background:#fff; }
+
+  /* 求解栏 */
+  .solve-bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:0 0 14px; padding:10px 14px; background:#eaf1fb; border:1px solid #b9cde8; border-radius:5px; }
+  .solve-bar button {
+    background:#2a5298; color:#fff; border:none; padding:8px 22px;
+    font-size:14px; font-family:inherit; border-radius:4px; cursor:pointer;
+    font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,.15);
+  }
+  .solve-bar button:hover { background:#1e3c72; }
+  .solve-bar button:active { transform:translateY(1px); }
+  .solve-bar .status { color:#2a5298; font-size:12.5px; }
+  .solve-bar .status.err { color:#c0392b; font-weight:bold; }
+  .solve-bar .status.ok { color:#1e7a3a; font-weight:bold; }
+  .val { font-family:Consolas,monospace; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>SRM 2023 — 固体火箭发动机性能计算</h1>
+  <p>Written by Richard A. Nakka &nbsp;|&nbsp; Version 2023 (免费分发) &nbsp;|&nbsp; 日期: 2023-03-23</p>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button data-target="sheet-intro" class="active">简介</button>
+  <button data-target="sheet-data">数据和喷燃比</button>
+  <button data-target="sheet-pressure">压强</button>
+  <button data-target="sheet-perf">性能</button>
+  <button data-target="sheet-nozzle">喷管设计</button>
+  <button data-target="sheet-output">输出</button>
+  <button data-target="sheet-prop">推进剂数据</button>
+  <button data-target="sheet-burn">燃速</button>
+  <button data-target="sheet-class">等级</button>
+  <button data-target="sheet-units">单位转换</button>
+  <button data-target="sheet-rev">修订</button>
+</nav>
+
+<main>
+
+<!-- ================= 简介 ================= -->
+<section class="sheet active" id="sheet-intro">
+  <h2 class="sheet-title">简介</h2>
+  <div class="solve-bar">
+    <button class="btn-solve">▶ 求解 (Solve)</button>
+    <span class="solve-status status">所有输入已清空。请先在"数据和喷燃比"页填写蓝色单元格，再点击求解。</span>
+  </div>
+  <div class="note">
+    <strong>使用说明：</strong><br>
+    • 在蓝色轮廓单元格中输入所需数据（带有蓝色文本）<br>
+    • 不要修改黑色文本<br>
+    • 请注意，某些数据单元格具有下拉列表<br>
+    • 然后单击"求解"按钮（1-3）<br>
+    • <strong>本页所有输入已默认清空，请手动填入数据。</strong>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><td>SRM 2023.XLS</td><td>Written by:</td><td>Richard A. Nakka</td></tr>
+        <tr><td>固体火箭发动机性能计算 2023</td><td>Version:</td><td>2023 (for free distribution). Supercedes SRM_2014.XLS version 1.1 (2014)</td></tr>
+        <tr><td></td><td>Date:</td><td>2023-03-23</td></tr>
+        <tr><td colspan="3">&nbsp;</td></tr>
+        <tr><td colspan="3"><strong>SRM 2023版本的更改</strong></td></tr>
+        <tr><td colspan="3">推进剂的选择中增加了KNPSB和KNFR。基于修订后的两相流分析，所有推进剂性能都进行了调整。</td></tr>
+        <tr><td colspan="3">"k"的值被修正为单一值。与SRM_2014相比，这些更新的属性值的总体效果是预测性能的小幅降低。</td></tr>
+        <tr><td colspan="3">现在支持高达"V"级的发动机性能。</td></tr>
+        <tr><td colspan="3">&nbsp;</td></tr>
+        <tr><td colspan="3">创建此电子表格是为了预测固体火箭发动机（SRM）的性能。尽管有许多因素使得对实际性能的精确预测变得困难，但据认为，可以达到与预期性能相当接近的近似值，并且对设计目的非常有用。</td></tr>
+        <tr><td colspan="3">&nbsp;</td></tr>
+        <tr><td colspan="3">与预测相比，影响实际(交付)性能的两个最重要因素是推进剂制备和喷嘴结构。推进剂的制备影响燃烧速率特性和燃烧效率。必须注意推进剂成分混合均匀，氧化剂粒度一致(见"适用性条件"，燃速工作表)。良好的喷嘴性能可以通过使用适当的几何形状来实现，并通过对流动表面的仔细轮廓和抛光来增强。</td></tr>
+        <tr><td colspan="3">&nbsp;</td></tr>
+        <tr><td colspan="3">导致预测不准确的一个关键因素是，分析假设推进剂的点火立即并同时发生在所有表面。同样，推进剂的燃尽也假定是瞬间发生的。实际上，燃烧通常只会在那些直接暴露在点火火焰下的表面上开始，随着腔室压力的上升，其余暴露的表面也会发生燃烧。</td></tr>
+        <tr><td colspan="3">&nbsp;</td></tr>
+        <tr><td colspan="3">特别是，侵蚀燃烧是难以模拟的。这个电子表格使用了一个简单的侵蚀燃烧模型，更多的是为了深思熟虑，而不是实际的预测。在新发动机的设计中，通常可以忽略侵蚀燃烧，而不会产生严重后果。</td></tr>
+        <tr><td colspan="3">&nbsp;</td></tr>
+        <tr><td colspan="3">压力和性能预测是基于标准热力学和流体流动方程，结合经验获得的推进剂燃烧速率与压力相关的参数。这些参数(a,n)提供给六种"糖"推进剂：KNDX, KNSB, KNSU, KNER, KNFR 和 KNMN。这些燃烧速率参数是通过仔细的束状燃烧器测量得到的：</td></tr>
+        <tr><td colspan="3">作者：Richard Nakka（KNSB"细"，KNDX，KNFR 和 KNSU）</td></tr>
+        <tr><td colspan="3">Magnus Gudnasen（KNSB"粗"，KNER"粗"和 KNMN"粗"）。细、粗是指氧化剂的粒度。通过BEM静态试验获得了KNPSB的燃烧速率参数。</td></tr>
+        <tr><td colspan="3">&nbsp;</td></tr>
+        <tr><td colspan="3">这张电子表格专门用于设计使用"糖"推进剂的火箭发动机。糖推进剂会产生大量的冷凝相燃烧产物。由此产生的"两相流"对性能影响显著，不容忽视。此电子表格通过使用适当修改的参数和流动方程来解释两相流。</td></tr>
+        <tr><td colspan="3">&nbsp;</td></tr>
+        <tr><td colspan="3">请注意，此电子表格仅适用于空心圆柱形推进剂颗粒(包括BATES)。可以指定任意数量的段。用户还可以指定哪些表面被禁止燃烧(如果有的话)。</td></tr>
+        <tr><td colspan="3">&nbsp;</td></tr>
+        <tr><td colspan="3">为了提供使用此电子表格的指导，并澄清各种术语，"弹出"文本框将出现在带有红色角旗的单元格上方。如果需要，可以通过"文件"、"更多"、"选项"、"高级"、"显示"禁用这些。</td></tr>
+        <tr><td colspan="3">&nbsp;</td></tr>
+        <tr><td colspan="3">应使用以下网页中描述的工艺生产KNPSB推进剂：</td></tr>
+        <tr><td colspan="3">www.nakka-rocketry.net/knpsb.html</td></tr>
+        <tr><td colspan="3">&nbsp;</td></tr>
+        <tr><td colspan="3"><strong>腔室压力计算注：</strong></td></tr>
+        <tr><td colspan="3">由于使用了计算腔室压力的算法，最大腔室压力可能与用户选择的目标最大腔室压力相差+/-0.3 MPa（50 psi）。</td></tr>
+        <tr><td colspan="3">&nbsp;</td></tr>
+        <tr><td colspan="3">e-mail: richard.rocketry@gmail.com</td></tr>
+        <tr><td colspan="3">website: www.nakka-rocketry.net</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================= 数据和喷燃比 ================= -->
+<section class="sheet" id="sheet-data">
+  <h2 class="sheet-title">数据和喷燃比</h2>
+  <div class="solve-bar">
+    <button class="btn-solve">▶ 求解 (Solve)</button>
+    <span class="solve-status status">请填写下方所有蓝色单元格。</span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><td colspan="4"><strong>基本数据和喷燃比计算</strong></td></tr>
+        <tr><td>标题：</td><td colspan="3"><input class="inp" id="in-title" placeholder="发动机名称" style="width:200px;text-align:left;"></td></tr>
+        <tr><td colspan="4">&nbsp;</td></tr>
+        <tr><td colspan="4"><strong>燃烧室：</strong></td></tr>
+        <tr><td>Dc</td><td><input class="inp" id="in-Dc" type="number" step="0.1" placeholder="mm"></td><td>mm</td><td>燃烧室直径</td></tr>
+        <tr><td>Lc</td><td><input class="inp" id="in-Lc" type="number" step="0.1" placeholder="mm"></td><td>mm</td><td>燃烧室长度</td></tr>
+        <tr><td>Vc</td><td class="num" id="out-Vc">—</td><td>mm3</td><td>燃烧室体积</td></tr>
+        <tr><td colspan="4"><strong>推进剂：</strong></td></tr>
+        <tr><td>Propellant type</td><td>
+          <select class="inp" id="in-prop">
+            <option value="">-- 请选择 --</option>
+            <option value="KNDX">KNDX</option>
+            <option value="KNSB细">KNSB（细）</option>
+            <option value="KNSB粗">KNSB（粗）</option>
+            <option value="KNSU">KNSU</option>
+            <option value="KNER粗">KNER（粗）</option>
+            <option value="KNMN粗">KNMN（粗）</option>
+            <option value="KNPSB">KNPSB</option>
+            <option value="KNFR">KNFR</option>
+          </select>
+        </td><td>select</td><td>注释 [1]</td></tr>
+        <tr><td>Do</td><td><input class="inp" id="in-Do" type="number" step="0.1" placeholder="mm"></td><td>mm</td><td>外径</td></tr>
+        <tr><td>do</td><td><input class="inp" id="in-do" type="number" step="0.1" placeholder="mm"></td><td>mm</td><td>孔径</td></tr>
+        <tr><td>Lo</td><td><input class="inp" id="in-Lo" type="number" step="0.1" placeholder="mm"></td><td>mm</td><td>段长</td></tr>
+        <tr><td>N</td><td><input class="inp" id="in-N" type="number" step="1" placeholder="段"></td><td></td><td>段数</td></tr>
+        <tr><td>外表面：</td><td>
+          <select class="inp" id="in-outSurf"><option value="0">绝燃</option><option value="1">可燃</option></select>
+        </td><td>select</td><td></td></tr>
+        <tr><td>内表面：</td><td>
+          <select class="inp" id="in-inSurf"><option value="1">可燃</option><option value="0">绝燃</option></select>
+        </td><td>select</td><td></td></tr>
+        <tr><td>端面：</td><td>
+          <select class="inp" id="in-endSurf"><option value="1">可燃</option><option value="0">绝燃</option></select>
+        </td><td>select</td><td></td></tr>
+        <tr><td>Lgo</td><td class="num" id="out-Lgo">—</td><td>mm</td><td>燃料长度</td></tr>
+        <tr><td>Vg</td><td class="num" id="out-Vg">—</td><td>mm3</td><td>燃料体积</td></tr>
+        <tr><td>V l</td><td class="num" id="out-Vl">—</td><td></td><td>体积载荷分数</td></tr>
+        <tr><td>r' grain</td><td class="num" id="out-rho-ideal">—</td><td>g/cm3</td><td>燃料理想密度</td></tr>
+        <tr><td></td><td><input class="inp" id="in-densRatio" type="number" step="0.01" placeholder="0~1"></td><td></td><td>密度比（实际/理想）</td></tr>
+        <tr><td>r grain</td><td class="num" id="out-rho-actual">—</td><td>g/cm3</td><td>燃料实际密度</td></tr>
+        <tr><td>m grain</td><td class="num" id="out-mgrain">—</td><td>kg.</td><td>燃料质量</td></tr>
+        <tr><td>Abeo</td><td class="num" id="out-Abeo">—</td><td>mm2</td><td>端面燃烧面积（两端）</td></tr>
+        <tr><td>Abco</td><td class="num" id="out-Abco">—</td><td>mm2</td><td>内孔燃烧面积</td></tr>
+        <tr><td>Abso</td><td class="num" id="out-Abso">—</td><td>mm2</td><td>外表面燃烧面积</td></tr>
+        <tr><td>Abo</td><td class="num" id="out-Abo">—</td><td>mm2</td><td>总燃烧面积</td></tr>
+        <tr><td>Target MEOP:</td><td>
+          <select class="inp" id="in-target"><option value="8">8 MPa</option><option value="7">7 MPa</option><option value="6">6 MPa</option></select>
+        </td><td>select</td><td>最大腔室压力</td></tr>
+        <tr><td>Kn max:</td><td class="num" id="out-Knmax">—</td><td></td><td>喷燃比（最大值）</td></tr>
+        <tr><td>Nozzle: Ato</td><td><input class="inp" id="in-At" type="number" step="0.01" placeholder="mm²"></td><td>mm2</td><td>喉部面积</td></tr>
+        <tr><td>Dto</td><td class="num" id="out-Dto">—</td><td>mm</td><td>喉部直径</td></tr>
+        <tr><td>e</td><td><input class="inp" id="in-ero" type="number" step="0.01" placeholder="mm"></td><td>mm</td><td>喷嘴侵蚀</td></tr>
+        <tr><td>Dtf</td><td class="num" id="out-Dtf">—</td><td>mm</td><td>喉部直径（最终）</td></tr>
+        <tr><td>xinc</td><td><input class="inp" id="in-xinc" type="number" step="0.01" placeholder="mm"></td><td>mm</td><td>Kn Table</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-wrap">
+    <table id="tbl-kn">
+      <thead>
+        <tr>
+          <th>Interval</th><th>x (mm)</th><th>d (mm)</th><th>D (mm)</th><th>L (mm)</th>
+          <th>tweb (mm)</th><th>Abe (mm²)</th><th>Abc (mm²)</th><th>Abs (mm²)</th>
+          <th>Ab total (mm²)</th><th>At (mm²)</th><th>Kn</th>
+        </tr>
+      </thead>
+      <tbody id="kn-body"><tr><td colspan="12" style="text-align:center;color:#999;">等待求解…</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><td colspan="2"><strong>注释 [1]</strong></td></tr>
+        <tr><td>KNDX</td><td>= 硝酸钾/葡萄糖，65/35 O/F 比，氧化剂细磨</td></tr>
+        <tr><td>KNSB（细）</td><td>= 硝酸钾/山梨糖醇 65/35 O/F 比例，氧化剂细磨</td></tr>
+        <tr><td>KNSB（粗）</td><td>= 硝酸钾/山梨糖醇 65/35 O/F 比，氧化剂粗磨</td></tr>
+        <tr><td>KNSU</td><td>= 硝酸钾/蔗糖 65/35 O/F比，氧化剂细磨</td></tr>
+        <tr><td>KNER（粗）</td><td>= 硝酸钾/赤藓糖醇 65/35 O/F 比，氧化剂粗磨</td></tr>
+        <tr><td>KNMN（粗）</td><td>= 硝酸钾/甘露醇 65/35 O/F 比，氧化剂粗磨</td></tr>
+        <tr><td>KNFR</td><td>= 硝酸钾/果糖，65/35 O/F 比，氧化剂细磨</td></tr>
+        <tr><td>KNPSB</td><td>= 硝酸钾/高氯酸钾/山梨糖醇 35/30/35 O/O/F 比，氧化剂细磨</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================= 压强 ================= -->
+<section class="sheet" id="sheet-pressure">
+  <h2 class="sheet-title">压强 — 火箭发动机燃烧室压力</h2>
+  <div class="solve-bar">
+    <button class="btn-solve">▶ 求解 (Solve)</button>
+    <span class="solve-status status">请填写下方蓝色单元格，或直接使用上方默认值。</span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><td>R'</td><td class="num">8314</td><td>J/mol-K</td><td>通用气体常数</td></tr>
+        <tr><td>M</td><td class="num" id="out-M">—</td><td>kg/kmol</td><td>生成物分子量</td></tr>
+        <tr><td>R</td><td class="num" id="out-R">—</td><td>J/kg-K</td><td>气体常数</td></tr>
+        <tr><td>k</td><td class="num" id="out-k">—</td><td></td><td>比热比</td></tr>
+        <tr><td>hc</td><td><input class="inp" id="in-hc" type="number" step="0.01" placeholder="0~1"></td><td></td><td>燃烧效率</td></tr>
+        <tr><td>To</td><td class="num" id="out-To">—</td><td>K</td><td>理想温度</td></tr>
+        <tr><td>To act</td><td class="num" id="out-ToAct">—</td><td>K</td><td>实际温度</td></tr>
+        <tr><td>Patm</td><td><input class="inp" id="in-Patm" type="number" step="0.001" placeholder="MPa"></td><td>MPa</td><td>外界气压</td></tr>
+        <tr><td>c*</td><td class="num" id="out-cstar">—</td><td>m/s</td><td>特征速度</td></tr>
+        <tr><td>G*</td><td class="num">0</td><td></td><td>推进剂侵蚀燃烧面积比阈值</td></tr>
+        <tr><td>kv</td><td class="num">0</td><td></td><td>推进剂侵蚀燃烧速度系数</td></tr>
+        <tr><td colspan="2"></td><td>Pmax =</td><td class="num"><span id="out-Pmax">—</span> MPa (<span id="out-Pmaxpsi">—</span> psi)</td></tr>
+        <tr><td colspan="2"></td><td>t burn =</td><td class="num"><span id="out-tburn">—</span> s.</td></tr>
+        <tr><td colspan="2"></td><td>t thrust =</td><td class="num"><span id="out-tthrust">—</span> s.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-wrap">
+    <table id="tbl-pressure">
+      <thead>
+        <tr>
+          <th>Interval</th><th>xi (mm)</th><th>tweb (mm)</th><th>d (mm)</th><th>D (mm)</th><th>L (mm)</th>
+          <th>At (mm²)</th><th>Po (MPa abs)</th><th>r (mm/s)</th>
+          <th>t (sec.)</th><th>m GRAIN (kg)</th><th>m GEN (kg/s)</th><th>m NOZ (kg/s)</th>
+          <th>Po (MPa gage)</th><th>Po (psig)</th>
+        </tr>
+      </thead>
+      <tbody id="pressure-body"><tr><td colspan="15" style="text-align:center;color:#999;">等待求解…</td></tr></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================= 性能 ================= -->
+<section class="sheet" id="sheet-perf">
+  <h2 class="sheet-title">性能 — 火箭发动机性能</h2>
+  <div class="solve-bar">
+    <button class="btn-solve">▶ 求解 (Solve)</button>
+    <span class="solve-status status">请填写下方蓝色单元格，或直接使用上方默认值。</span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><td>k</td><td class="num" id="out-k2">—</td><td></td><td>比热比</td></tr>
+        <tr><td>h noz</td><td><input class="inp" id="in-hnoz" type="number" step="0.01" placeholder="0~1"></td><td></td><td>喷管效率</td></tr>
+        <tr><td>Ae/At</td><td><input class="inp" id="in-AeAt" type="number" step="0.1" placeholder="扩张比"></td><td></td><td>喷管扩张比（初始）</td></tr>
+        <tr><td>Patm</td><td class="num" id="out-Patm2">—</td><td>MPa</td><td>外界气压</td></tr>
+        <tr><td>Ato</td><td class="num" id="out-Ato2">—</td><td>mm2</td><td>喉部面积（初始）</td></tr>
+        <tr><td>Ae</td><td class="num" id="out-Ae">—</td><td>mm2</td><td>出口面积</td></tr>
+        <tr><td>Meo</td><td class="num" id="out-Meo">—</td><td></td><td>出口马赫数（初始）</td></tr>
+        <tr><td>De</td><td class="num" id="out-De">—</td><td>mm</td><td>出口直径</td></tr>
+        <tr><td>Ae/At opt</td><td class="num" id="out-AeAtopt">—</td><td></td><td>最佳膨胀比</td></tr>
+        <tr><td>Ae/At opt</td><td class="num" id="out-AeAtavg">—</td><td></td><td>平均膨胀比</td></tr>
+        <tr><td>w f</td><td class="num" id="out-wf">—</td><td></td><td>Web fraction</td></tr>
+        <tr><td>CFmax</td><td class="num" id="out-CFmax">—</td><td></td><td>推力系数（最大值）</td></tr>
+        <tr><td>F max</td><td class="num" id="out-Fmax">—</td><td>N.</td><td>最大推力</td></tr>
+        <tr><td>I t</td><td class="num" id="out-It">—</td><td>N-sec.</td><td>总冲</td></tr>
+        <tr><td>Isp</td><td class="num" id="out-Isp">—</td><td>sec.</td><td>实际比冲</td></tr>
+        <tr><td>Class:</td><td id="out-class">—</td><td></td><td>等级</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-wrap">
+    <table id="tbl-perf">
+      <thead>
+        <tr>
+          <th>Po (Pa abs)</th><th>At (mm²)</th><th>Ae/At</th><th>Pe (Pa abs)</th>
+          <th>CF * hnoz</th><th>F (N.)</th><th>F (lbf)</th><th>t (sec.)</th><th>I t (N-sec.)</th>
+        </tr>
+      </thead>
+      <tbody id="perf-body"><tr><td colspan="9" style="text-align:center;color:#999;">等待求解…</td></tr></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================= 喷管设计 ================= -->
+<section class="sheet" id="sheet-nozzle">
+  <h2 class="sheet-title">喷管设计</h2>
+  <div class="solve-bar">
+    <button class="btn-solve">▶ 求解 (Solve)</button>
+    <span class="solve-status status">请填写下方蓝色单元格，或直接使用上方默认值。</span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><td>beta</td><td><input class="inp" id="in-beta" type="number" step="1" placeholder="deg"></td><td>degrees</td><td>收敛半角</td></tr>
+        <tr><td>alpha</td><td><input class="inp" id="in-alpha" type="number" step="1" placeholder="deg"></td><td>degrees</td><td>扩张半角</td></tr>
+        <tr><td colspan="4"><strong>Reference worksheets:</strong></td></tr>
+        <tr><td>Dc</td><td class="num" id="out-Dc3">—</td><td>mm</td><td>燃烧室内径（数据和喷燃比）</td></tr>
+        <tr><td>Dt</td><td class="num" id="out-Dt3">—</td><td>mm</td><td>喉部直径（数据和喷燃比）</td></tr>
+        <tr><td>De</td><td class="num" id="out-De3">—</td><td>mm</td><td>出口直径（性能）</td></tr>
+        <tr><td>De opt</td><td class="num" id="out-Deopt3">—</td><td>mm</td><td>最佳出口直径（性能）</td></tr>
+        <tr><td>Lc</td><td class="num" id="out-LcN">—</td><td>mm</td><td>收敛长度</td></tr>
+        <tr><td>Ld</td><td class="num" id="out-LdN">—</td><td>mm</td><td>扩张长度</td></tr>
+        <tr><td>Lo</td><td class="num" id="out-LoN">—</td><td>mm</td><td>总长</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================= 输出 ================= -->
+<section class="sheet" id="sheet-output">
+  <h2 class="sheet-title">输出 — 发动机输出数据</h2>
+  <div class="solve-bar">
+    <button class="btn-solve">▶ 求解 (Solve)</button>
+    <span class="solve-status status">请先在其它页填写数据，再点击求解。</span>
+  </div>
+  <div class="note">本页总结了电机性能的关键参数，可用于轨迹模拟软件，如 SOAR。</div>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><td colspan="2"><strong id="out-title2">—</strong></td></tr>
+        <tr><td>推进剂质量</td><td class="num"><span id="out-mgrain2">—</span> kg (<span id="out-mgrainlb">—</span> lb)</td></tr>
+        <tr><td>总冲</td><td class="num"><span id="out-It2">—</span> N-sec. (<span id="out-Itlb">—</span> lb-sec)</td></tr>
+        <tr><td>平均推力</td><td class="num"><span id="out-Favg2">—</span> N. (<span id="out-Favglb">—</span> lb)</td></tr>
+        <tr><td>推进时间</td><td class="num"><span id="out-tthrust2">—</span> sec.</td></tr>
+        <tr><td>比冲</td><td class="num"><span id="out-Isp2">—</span> sec.</td></tr>
+        <tr><td>等级</td><td id="out-class2">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================= 推进剂数据 ================= -->
+<section class="sheet" id="sheet-prop">
+  <h2 class="sheet-title">推进剂数据</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>推进剂类型</th><th>symb.</th><th>units</th><th>notes</th>
+          <th>KNDX</th><th>KNSB</th><th>KNSU</th><th>KNER</th><th>KNMN</th><th>KNFR</th><th>KNPSB</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>理论密度</td><td>r p</td><td>g/cm3</td><td>[1]</td><td class="num">1.879</td><td class="num">1.841</td><td class="num">1.889</td><td class="num">1.82</td><td class="num">1.854</td><td class="num">1.942</td><td class="num">1.923</td></tr>
+        <tr><td>比热比</td><td>k</td><td>-</td><td>[2]</td><td class="num">1.1308</td><td class="num">1.137</td><td class="num">1.133</td><td class="num">1.14</td><td class="num">1.1363</td><td class="num">1.1308</td><td class="num">1.163</td></tr>
+        <tr><td>分子量</td><td>M</td><td>kg/kmol</td><td>[3]</td><td class="num">42.42</td><td class="num">39.9</td><td class="num">42.02</td><td class="num">38.58</td><td class="num">39.826</td><td class="num">42.42</td><td class="num">36.39</td></tr>
+        <tr><td>燃烧室温度</td><td>To</td><td>K</td><td>[4]</td><td class="num">1710</td><td class="num">1600</td><td class="num">1720</td><td class="num">1608</td><td class="num">1616</td><td class="num">1710</td><td class="num">1858</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">
+    <strong>Notes:</strong><br>
+    [1] Ref. ProPEP<br>
+    [2] For the gas-particle mixture.<br>
+    [3] Given by system mass divided by number of gas moles in system.<br>
+    [4] Adiabatic flame temperature.
+  </div>
+</section>
+
+<!-- ================= 燃速 ================= -->
+<section class="sheet" id="sheet-burn">
+  <h2 class="sheet-title">燃速 — 推进剂燃烧速率（经验值）</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>推进剂</th><th>压力范围 (MPa)</th><th>a (MPa·mm/s)</th><th>n</th></tr>
+      </thead>
+      <tbody id="burn-body"></tbody>
+    </table>
+  </div>
+  <div class="note">
+    <strong>燃烧速率参数的适用条件：</strong><br>
+    <strong>KNSB（细）, KNDX, KNFR, KNSU：</strong><br>
+    • 氧化剂粒径 60-125 um majority [Note 1]<br>
+    • 混合时间（粉末）1小时/100g。<br>
+    • 温度 20°C。<br><br>
+    <strong>KNSB（粗）, KNMN（粗）, KNER（粗）：</strong><br>
+    • 氧化剂粒径 150-250 um [Note 2]<br>
+    • 温度 20°C。<br><br>
+    [1] 在电动咖啡研磨机中研磨约 40 秒。<br>
+    [2] 在电动咖啡研磨机中研磨约 5 秒。<br>
+    [3] 粗磨燃料的参数由 Magnus Gudnasen 提供。
+  </div>
+</section>
+
+<!-- ================= 等级 ================= -->
+<section class="sheet" id="sheet-class">
+  <h2 class="sheet-title">等级 — 火箭发动机等级表</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>等级</th><th>总冲（牛秒）</th><th>-</th><th></th></tr></thead>
+      <tbody>
+        <tr><td>A</td><td class="num">1.26</td><td>-</td><td class="num">2.5</td></tr>
+        <tr><td>B</td><td class="num">2.5</td><td>-</td><td class="num">5</td></tr>
+        <tr><td>C</td><td class="num">5</td><td>-</td><td class="num">10</td></tr>
+        <tr><td>D</td><td class="num">10</td><td>-</td><td class="num">20</td></tr>
+        <tr><td>E</td><td class="num">20</td><td>-</td><td class="num">40</td></tr>
+        <tr><td>F</td><td class="num">40</td><td>-</td><td class="num">80</td></tr>
+        <tr><td>G</td><td class="num">80</td><td>-</td><td class="num">160</td></tr>
+        <tr><td>H</td><td class="num">160</td><td>-</td><td class="num">320</td></tr>
+        <tr><td>I</td><td class="num">320</td><td>-</td><td class="num">640</td></tr>
+        <tr><td>J</td><td class="num">640</td><td>-</td><td class="num">1280</td></tr>
+        <tr><td>K</td><td class="num">1280</td><td>-</td><td class="num">2560</td></tr>
+        <tr><td>L</td><td class="num">2560</td><td>-</td><td class="num">5120</td></tr>
+        <tr><td>M</td><td class="num">5120</td><td>-</td><td class="num">10240</td></tr>
+        <tr><td>N</td><td class="num">10240</td><td>-</td><td class="num">20480</td></tr>
+        <tr><td>O</td><td class="num">20480</td><td>-</td><td class="num">40960</td></tr>
+        <tr><td>P</td><td class="num">40960</td><td>-</td><td class="num">81920</td></tr>
+        <tr><td>Q</td><td class="num">81920</td><td>-</td><td class="num">163840</td></tr>
+        <tr><td>R</td><td class="num">163840</td><td>-</td><td class="num">327680</td></tr>
+        <tr><td>S</td><td class="num">327680</td><td>-</td><td class="num">655360</td></tr>
+        <tr><td>T</td><td class="num">655360</td><td>-</td><td class="num">1.31072e+06</td></tr>
+        <tr><td>U</td><td class="num">1310720</td><td>-</td><td class="num">2.62144e+06</td></tr>
+        <tr><td>V</td><td class="num">2621440</td><td>-</td><td class="num">5.24288e+06</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================= 单位转换 ================= -->
+<section class="sheet" id="sheet-units">
+  <h2 class="sheet-title">单位转换</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th colspan="6">英制 → 公制转换器</th><th colspan="6">公制 → 英制转换器</th></tr></thead>
+      <tbody>
+        <tr><td>长度</td><td class="num">2</td><td>inch →</td><td class="num">50.8</td><td>mm.</td><td></td><td>长度</td><td class="num">25</td><td>mm. →</td><td class="num">0.984252</td><td>inch</td><td></td></tr>
+        <tr><td>长度</td><td class="num">2</td><td>inch →</td><td class="num">5.08</td><td>cm.</td><td></td><td>长度</td><td class="num">10</td><td>cm. →</td><td class="num">3.93701</td><td>inch</td><td></td></tr>
+        <tr><td>质量</td><td class="num">1</td><td>lb(mass) →</td><td class="num">0.4536</td><td>kg.</td><td></td><td>质量</td><td class="num">1</td><td>kg. →</td><td class="num">2.20459</td><td>lb(mass)</td><td></td></tr>
+        <tr><td>力</td><td class="num">1</td><td>lb(force) →</td><td class="num">4.448</td><td>N.</td><td></td><td>力</td><td class="num">100</td><td>N. →</td><td class="num">22.482</td><td>lb(force)</td><td></td></tr>
+        <tr><td>密度</td><td class="num">0.05736</td><td>lb/in3 →</td><td class="num">1.58775</td><td>g/cm3</td><td></td><td>密度</td><td class="num">1.8</td><td>g/cm3 →</td><td class="num">0.065028</td><td>lb/in3</td><td></td></tr>
+        <tr><td>压强</td><td class="num">1000</td><td>lb/in2 →</td><td class="num">6.895</td><td>MPa.</td><td></td><td>压强</td><td class="num">5.515</td><td>MPa. →</td><td class="num">799.855</td><td>lb/in2</td><td></td></tr>
+        <tr><td>面积</td><td class="num">0.2</td><td>in2 →</td><td class="num">129.032</td><td>mm2</td><td></td><td>面积</td><td class="num">80</td><td>mm2 →</td><td class="num">0.124</td><td>in2</td><td></td></tr>
+        <tr><td>冲量</td><td class="num">120</td><td>lb-sec →</td><td class="num">533.76</td><td>N-sec.</td><td></td><td>冲量</td><td class="num">450</td><td>N-sec. →</td><td class="num">101.169</td><td>lb-sec</td><td></td></tr>
+        <tr><td>温度</td><td class="num">80</td><td>deg.F. →</td><td class="num">26.6667</td><td>deg.C.</td><td></td><td>温度</td><td class="num">100</td><td>deg.C. →</td><td class="num">212</td><td>deg.F.</td><td></td></tr>
+        <tr><td>绝对温度</td><td class="num">2700</td><td>R. →</td><td class="num">1500</td><td>K.</td><td></td><td>绝对温度</td><td class="num">1600</td><td>K. →</td><td class="num">2880</td><td>R.</td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================= 修订 ================= -->
+<section class="sheet" id="sheet-rev">
+  <h2 class="sheet-title">修订记录</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Version</th><th>Date</th><th>Worksheet</th><th>Changes</th></tr></thead>
+      <tbody>
+        <tr><td>Beta</td><td>1 Dec. 99</td><td>-</td><td>- Original release.</td></tr>
+        <tr><td>Beta-1</td><td>1 Sep. 00</td><td>Performance</td><td>- Revised performance to take into account varying Ae/At due to throat erosion.</td></tr>
+        <tr><td></td><td></td><td></td><td>- Added web fraction calculation.</td></tr>
+        <tr><td></td><td></td><td></td><td>- Edited comment for nozzle efficiency.</td></tr>
+        <tr><td></td><td></td><td>Data and Kn</td><td>- Added volumetric loading fraction calculation.</td></tr>
+        <tr><td>1.00</td><td>6 April 02</td><td>Propellant data</td><td>- k for static mixture added.</td></tr>
+        <tr><td></td><td></td><td></td><td>- Notes added.</td></tr>
+        <tr><td></td><td></td><td>Data and Kn</td><td>- Fixed bug wrt computing tweb with core inhibited.</td></tr>
+        <tr><td></td><td></td><td></td><td>- Hint added.</td></tr>
+        <tr><td></td><td></td><td></td><td>- Solve buttons edited & arrow added.</td></tr>
+        <tr><td></td><td></td><td>Pressure</td><td>- k for static mixture now used for pressure & c* computation.</td></tr>
+        <tr><td></td><td></td><td></td><td>- Solve buttons edited & arrow added.</td></tr>
+        <tr><td></td><td></td><td>Performance</td><td>- k for 2-phase flow inserted.</td></tr>
+        <tr><td></td><td></td><td>Intro</td><td>- URL added.</td></tr>
+        <tr><td></td><td></td><td></td><td>- Text modified</td></tr>
+        <tr><td></td><td></td><td>Output</td><td>- New worksheet</td></tr>
+        <tr><td></td><td></td><td>(all)</td><td>- Various font & chart colours changed.</td></tr>
+        <tr><td>2014</td><td>Dec. 2013</td><td></td><td>- Multiple changes to user interface and formatting</td></tr>
+        <tr><td></td><td></td><td></td><td>- Propellant choices enhanced.</td></tr>
+        <tr><td></td><td></td><td></td><td>- Added Nozzle Design worksheet</td></tr>
+        <tr><td>2014.1</td><td>May 2020</td><td>Pressure</td><td>- Fixed issue with calculation failure (#NUM) when selecting low chamber pressure</td></tr>
+        <tr><td>2023</td><td>Mar. 2023</td><td>Intro</td><td>- Updated for revisions</td></tr>
+        <tr><td></td><td></td><td>Data and Kn</td><td>- Added KNFR and KNPSB propellants</td></tr>
+        <tr><td></td><td></td><td>Pressure</td><td>- Updated graph titles</td></tr>
+        <tr><td></td><td></td><td>Performance</td><td>- Removed 2-phase value for "k" (replaced with "k" for mixture)</td></tr>
+        <tr><td></td><td></td><td></td><td>- Updated graph titles</td></tr>
+        <tr><td></td><td></td><td>Propellant data</td><td>- Fixed minor error with fuel type selection of k and To.</td></tr>
+        <tr><td></td><td></td><td>Burnrate</td><td>- Added parameters for KNPSB and KNFR</td></tr>
+        <tr><td></td><td></td><td>Class</td><td>- Table expanded to "V-Class"</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</main>
+
+<footer>SRM 2023 — Written by Richard A. Nakka &nbsp;|&nbsp; www.nakka-rocketry.net</footer>
+
+<script>
+/* ============================================================
+   数据表：完全取自 SRM 2023 Excel 原始工作表
+   ============================================================ */
+
+const PROPELLANT_DATA = {
+  'KNDX':    { rho:1.879, k:1.1308, M:42.42,  To:1710 },
+  'KNSB细':  { rho:1.841, k:1.137,  M:39.9,   To:1600 },
+  'KNSB粗':  { rho:1.841, k:1.137,  M:39.9,   To:1600 },
+  'KNSU':    { rho:1.889, k:1.133,  M:42.02,  To:1720 },
+  'KNER粗':  { rho:1.82,  k:1.14,   M:38.58,  To:1608 },
+  'KNMN粗':  { rho:1.854, k:1.1363, M:39.826, To:1616 },
+  'KNFR':    { rho:1.942, k:1.1308, M:42.42,  To:1710 },
+  'KNPSB':   { rho:1.923, k:1.163,  M:36.39,  To:1858 }
+};
+
+const BURN_DATA = {
+  'KNDX': [
+    { pMin:0.1,      pMax:0.779135,  a:8.875444967785356, n: 0.6193 },
+    { pMin:0.779135, pMax:2.57184,   a:7.55278442387944,  n:-0.0087 },
+    { pMin:2.571835, pMax:5.9297,    a:3.8408799049960156,n: 0.6882 },
+    { pMin:5.9297,   pMax:8.50154,   a:17.20418640980624, n:-0.1481 },
+    { pMin:8.501535, pMax:Infinity,  a:4.775240863476593, n: 0.4417 }
+  ],
+  'KNSB细': [
+    { pMin:0.101,    pMax:0.806715,  a:10.707683798033065,n: 0.6247 },
+    { pMin:0.806715, pMax:1.50311,   a:8.763280071017734, n:-0.3142 },
+    { pMin:1.50311,  pMax:3.79225,   a:7.852165794978407, n:-0.013  },
+    { pMin:3.79225,  pMax:7.0329,    a:3.9067683041390504,n: 0.5354 },
+    { pMin:7.0329,   pMax:Infinity,  a:9.653203619876852, n: 0.0638 }
+  ],
+  'KNSB粗': [ { pMin:0.101, pMax:Infinity, a:5.13, n:0.22  } ],
+  'KNSU':   [ { pMin:0.101, pMax:Infinity, a:8.26, n:0.319 } ],
+  'KNER粗': [ { pMin:0.101, pMax:Infinity, a:2.9,  n:0.4   } ],
+  'KNMN粗': [ { pMin:0.101, pMax:Infinity, a:5.13, n:0.22  } ],
+  'KNFR':   [ { pMin:0.101, pMax:Infinity, a:7.4,  n:0.25  } ],
+  'KNPSB':  [ { pMin:0.101, pMax:Infinity, a:6.5,  n:0.628 } ]
+};
+
+const CLASS_TABLE = [
+  { grade:'A', Imin:1.26,    Imax:2.5 },
+  { grade:'B', Imin:2.5,     Imax:5 },
+  { grade:'C', Imin:5,       Imax:10 },
+  { grade:'D', Imin:10,      Imax:20 },
+  { grade:'E', Imin:20,      Imax:40 },
+  { grade:'F', Imin:40,      Imax:80 },
+  { grade:'G', Imin:80,      Imax:160 },
+  { grade:'H', Imin:160,     Imax:320 },
+  { grade:'I', Imin:320,     Imax:640 },
+  { grade:'J', Imin:640,     Imax:1280 },
+  { grade:'K', Imin:1280,    Imax:2560 },
+  { grade:'L', Imin:2560,    Imax:5120 },
+  { grade:'M', Imin:5120,    Imax:10240 },
+  { grade:'N', Imin:10240,   Imax:20480 },
+  { grade:'O', Imin:20480,   Imax:40960 },
+  { grade:'P', Imin:40960,   Imax:81920 },
+  { grade:'Q', Imin:81920,   Imax:163840 },
+  { grade:'R', Imin:163840,  Imax:327680 },
+  { grade:'S', Imin:327680,  Imax:655360 },
+  { grade:'T', Imin:655360,  Imax:1310720 },
+  { grade:'U', Imin:1310720, Imax:2621440 },
+  { grade:'V', Imin:2621440, Imax:5242880 }
+];
+
+const PI = Math.PI;
+const $ = id => document.getElementById(id);
+
+function setTxt(id, v, digits) {
+  const el = $(id);
+  if (!el) return;
+  if (v === undefined || v === null || (typeof v === 'number' && !isFinite(v))) {
+    el.textContent = '—'; return;
+  }
+  if (typeof v === 'number') {
+    if (digits !== undefined) el.textContent = v.toFixed(digits);
+    else if (Math.abs(v) >= 1e5 || (Math.abs(v) < 1e-3 && v !== 0))
+      el.textContent = v.toExponential(6);
+    else el.textContent = parseFloat(v.toPrecision(12)).toString();
+  } else el.textContent = v;
+}
+
+function burnRateMPa(propKey, P_MPa) {
+  const segs = BURN_DATA[propKey];
+  if (!segs) return 0;
+  for (const s of segs) {
+    if (P_MPa >= s.pMin && P_MPa <= s.pMax) return s.a * Math.pow(P_MPa, s.n);
+  }
+  if (P_MPa < segs[0].pMin) return segs[0].a * Math.pow(P_MPa, segs[0].n);
+  const last = segs[segs.length-1];
+  return last.a * Math.pow(P_MPa, last.n);
+}
+
+function solveChamberPressure(propKey, Ab_mm2, At_mm2, cstar, rho_prop_gcm3) {
+  const Ab_m2  = Ab_mm2 * 1e-6;
+  const At_m2  = At_mm2 * 1e-6;
+  const rho_kg = rho_prop_gcm3 * 1000;
+  const f = P_Pa => {
+    const P_MPa = P_Pa / 1e6;
+    if (P_MPa <= 0.02) return -1;
+    const r_m_s = burnRateMPa(propKey, P_MPa) / 1000;
+    const mdot_gen = rho_kg * Ab_m2 * r_m_s;
+    const mdot_noz = At_m2 * P_Pa / cstar;
+    return mdot_gen - mdot_noz;
+  };
+  let lo = 0.03e6, hi = 40e6;
+  for (let i=0; i<200 && f(hi) > 0; i++) hi *= 1.5;
+  if (hi > 200e6) hi = 200e6;
+  for (let i=0; i<80; i++) {
+    const mid = (lo + hi) / 2;
+    if (f(mid) > 0) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+function exitMachFromRatio(eps, k) {
+  if (eps <= 1) return 1;
+  const g = Me => {
+    const t1 = 2/(k+1);
+    const t2 = 1 + (k-1)/2 * Me*Me;
+    return (1/Me) * Math.pow(t1 * t2, (k+1)/(2*(k-1))) - eps;
+  };
+  let Me = 2.0;
+  for (let i=0; i<60; i++) {
+    const f = g(Me);
+    const df = (g(Me+1e-6) - f) / 1e-6;
+    if (df === 0) break;
+    const step = f/df;
+    Me -= step;
+    if (Me < 1.001) Me = 1.001;
+    if (Math.abs(step) < 1e-9) break;
+  }
+  return Me;
+}
+
+function thrustCoefficient(k, Pc_Pa, Pe_Pa, Pa_Pa, eps) {
+  const t1 = Math.sqrt( 2*k*k/(k-1) * Math.pow(2/(k+1), (k+1)/(k-1)) );
+  const t2 = Math.sqrt( 1 - Math.pow(Pe_Pa/Pc_Pa, (k-1)/k) );
+  return t1 * t2 + (Pe_Pa - Pa_Pa) / Pc_Pa * eps;
+}
+
+function gradeFromImpulse(I) {
+  for (const c of CLASS_TABLE) if (I >= c.Imin && I < c.Imax) return c.grade;
+  return I >= CLASS_TABLE[CLASS_TABLE.length-1].Imin ? 'V' : 'A';
+}
+
+/* 获取输入值：空返回 NaN */
+function getNum(id) { return parseFloat($(id).value); }
+
+/* 清空所有输出 */
+function clearOutputs() {
+  const ids = ['out-Vc','out-Lgo','out-Vg','out-Vl','out-rho-ideal','out-rho-actual',
+    'out-mgrain','out-Abeo','out-Abco','out-Abso','out-Abo','out-Knmax','out-Dto','out-Dtf',
+    'out-M','out-R','out-k','out-To','out-ToAct','out-cstar','out-Pmax','out-Pmaxpsi',
+    'out-tburn','out-tthrust','out-k2','out-Patm2','out-Ato2','out-Ae','out-Meo','out-De',
+    'out-AeAtopt','out-AeAtavg','out-wf','out-CFmax','out-Fmax','out-It','out-Isp',
+    'out-Dc3','out-Dt3','out-De3','out-Deopt3','out-LcN','out-LdN','out-LoN',
+    'out-mgrain2','out-mgrainlb','out-It2','out-Itlb','out-Favg2','out-Favglb',
+    'out-tthrust2','out-Isp2'];
+  ids.forEach(id => { if ($(id)) $(id).textContent = '—'; });
+  if ($('out-class'))  $('out-class').textContent  = '—';
+  if ($('out-class2')) $('out-class2').textContent = '—';
+  if ($('out-title2')) $('out-title2').textContent = '—';
+  $('kn-body').innerHTML       = '<tr><td colspan="12" style="text-align:center;color:#999;">等待求解…</td></tr>';
+  $('pressure-body').innerHTML = '<tr><td colspan="15" style="text-align:center;color:#999;">等待求解…</td></tr>';
+  $('perf-body').innerHTML     = '<tr><td colspan="9" style="text-align:center;color:#999;">等待求解…</td></tr>';
+}
+
+/* 所有状态同步 */
+function setAllStatus(text, cls) {
+  document.querySelectorAll('.solve-status').forEach(s => {
+    s.className = 'solve-status status ' + (cls || '');
+    s.textContent = text;
+  });
+}
+
+/* ============================================================
+   主求解
+   ============================================================ */
+function solve() {
+  const t0 = performance.now();
+
+  try {
+    /* ---------- 读取输入 ---------- */
+    const title    = $('in-title').value.trim() || '未命名发动机';
+    const Dc       = getNum('in-Dc');
+    const Lc       = getNum('in-Lc');
+    const propKey  = $('in-prop').value;
+    const Do       = getNum('in-Do');
+    const d0       = getNum('in-do');
+    const Lo       = getNum('in-Lo');
+    const N        = getNum('in-N');
+    const densR    = getNum('in-densRatio');
+    const At       = getNum('in-At');
+    const erosion  = getNum('in-ero');
+    const xinc     = getNum('in-xinc');
+    const hc       = getNum('in-hc');
+    const Patm_MPa = getNum('in-Patm');
+    const hnoz     = getNum('in-hnoz');
+    const AeAt     = getNum('in-AeAt');
+    const alphaDeg = getNum('in-alpha');
+    const betaDeg  = getNum('in-beta');
+
+    const outSurf  = parseInt($('in-outSurf').value);
+    const inSurf   = parseInt($('in-inSurf').value);
+    const endSurf  = parseInt($('in-endSurf').value);
+
+    /* ---------- 完整性检查 ---------- */
+    const missing = [];
+    if (!propKey) missing.push('推进剂类型');
+    if (!isFinite(Dc)  || Dc <= 0)  missing.push('Dc (燃烧室直径)');
+    if (!isFinite(Lc)  || Lc <= 0)  missing.push('Lc (燃烧室长度)');
+    if (!isFinite(Do)  || Do <= 0)  missing.push('Do (外径)');
+    if (!isFinite(d0)  || d0 <= 0)  missing.push('do (孔径)');
+    if (!isFinite(Lo)  || Lo <= 0)  missing.push('Lo (段长)');
+    if (!isFinite(N)   || N  <= 0)  missing.push('N (段数)');
+    if (!isFinite(densR) || densR <= 0 || densR > 1) missing.push('密度比 (0~1)');
+    if (!isFinite(At)  || At <= 0)  missing.push('Ato (喉部面积)');
+    if (!isFinite(erosion) || erosion < 0) missing.push('e (喷嘴侵蚀，可填0)');
+    if (!isFinite(xinc) || xinc <= 0) missing.push('xinc (Kn 步长)');
+    if (!isFinite(hc)  || hc <= 0 || hc > 1) missing.push('hc (燃烧效率 0~1)');
+    if (!isFinite(Patm_MPa) || Patm_MPa < 0) missing.push('Patm (外界气压)');
+    if (!isFinite(hnoz) || hnoz <= 0 || hnoz > 1) missing.push('h noz (喷管效率 0~1)');
+    if (!isFinite(AeAt) || AeAt <= 1) missing.push('Ae/At (扩张比 >1)');
+    if (!isFinite(alphaDeg) || alphaDeg <= 0 || alphaDeg >= 90) missing.push('alpha (扩张半角)');
+    if (!isFinite(betaDeg)  || betaDeg  <= 0 || betaDeg  >= 90) missing.push('beta (收敛半角)');
+
+    if (missing.length) {
+      setAllStatus('✘ 请先填写以下输入：' + missing.join('、'), 'err');
+      return;
+    }
+    if (d0 >= Do) { setAllStatus('✘ 孔径 do 必须小于外径 Do。', 'err'); return; }
+
+    /* ---------- 数据和喷燃比 ---------- */
+    const PD = PROPELLANT_DATA[propKey];
+    const k  = PD.k;
+    const M  = PD.M;
+    const To = PD.To;
+    const rho_ideal = PD.rho;
+
+    const Vc = PI/4 * Dc*Dc * Lc;
+    const Vg = PI/4 * (Do*Do - d0*d0) * Lo * N;
+    const Vl = Vg / Vc;
+    const rho_actual = rho_ideal * densR;
+    const mgrain = Vg * rho_actual * 1e-6;
+    const rhoKg  = rho_actual * 1000;
+
+    const Abeo = (endSurf ? 2 : 0) * PI/4 * (Do*Do - d0*d0) * N;
+    const Abco = inSurf  ? PI * d0 * Lo * N : 0;
+    const Abso = outSurf ? PI * Do * Lo * N : 0;
+    const Abo  = Abeo + Abco + Abso;
+
+    /* ---------- 气体常数 & 特征速度 ---------- */
+    const Rgas  = 8314 / M;
+    const ToAct = To * hc;
+    const cstar = Math.sqrt( Rgas * ToAct / ( k * Math.pow(2/(k+1), (k+1)/(k-1)) ) );
+
+    /* ---------- Kn 表 ---------- */
+    const twebMax = (Do - d0) / 2;
+    const knRows = [];
+    const nSteps = Math.max(1, Math.round(twebMax / xinc));
+    for (let i = 0; i <= nSteps; i++) {
+      const x = Math.min(i * xinc, twebMax);
+      const d = d0 + 2*x;
+      const D = Do;
+      const L = Lo - 2*x;
+      const tweb = (Do - d)/2;
+      const Abe = (endSurf ? 2 : 0) * PI/4 * (D*D - d*d) * N;
+      const Abc = inSurf  ? PI * d * L * N : 0;
+      const Abs = outSurf ? PI * D * L * N : 0;
+      const Ab  = Abe + Abc + Abs;
+      knRows.push({ i, x, d, D, L, tweb, Abe, Abc, Abs, Ab, At, Kn: Ab / At });
+    }
+    const KnMax = knRows[knRows.length-1].Kn;
+
+    /* ---------- 压强迭代 ---------- */
+    const segPressures = [];
+    let PmAxPa = 0;
+    for (const row of knRows) {
+      const P_Pa = solveChamberPressure(propKey, row.Ab, At, cstar, rho_actual);
+      const P_MPa = P_Pa / 1e6;
+      const r_mm_s = burnRateMPa(propKey, P_MPa);
+      const r_m_s = r_mm_s / 1000;
+      const mdot_gen = rhoKg * row.Ab*1e-6 * r_m_s;
+      const mdot_noz = At*1e-6 * P_Pa / cstar;
+      segPressures.push({ P_Pa, P_MPa, r_mm_s, mdot_gen, mdot_noz });
+      if (P_Pa > PmAxPa) PmAxPa = P_Pa;
+    }
+
+    /* 燃尽时间 */
+    let tBurn = 0;
+    for (let i = 1; i < knRows.length; i++) {
+      const dx = knRows[i].x - knRows[i-1].x;
+      const r = segPressures[i].r_mm_s;
+      if (r > 0) tBurn += dx / r;
+    }
+
+    /* ---------- 压强表数据 ---------- */
+    const pressRows = [];
+    let prevTime = 0;
+    for (let i = 0; i < knRows.length; i++) {
+      const row = knRows[i];
+      const sp = segPressures[i];
+
+      let tStep = 0;
+      if (i > 0) {
+        const dx = row.x - knRows[i-1].x;
+        const rPrev = segPressures[i-1].r_mm_s;
+        tStep = prevTime + (rPrev > 0 ? dx / rPrev : 0);
+      }
+      prevTime = tStep;
+
+      const currentGrain = PI/4 * (Do*Do - row.d*row.d) * (Lo - 2*row.x) * N;
+      const mRemaining = Math.max(0, mgrain - Math.max(0, Vg - currentGrain) * rho_actual * 1e-6);
+
+      pressRows.push({
+        i, xi: row.x, tweb: row.tweb, d: row.d, D: row.D, L: row.L, At,
+        Po_Pa: sp.P_Pa, Po_MPa: sp.P_MPa, r: sp.r_mm_s,
+        t: tStep, mGrain: mRemaining,
+        mGen: sp.mdot_gen, mNoz: sp.mdot_noz,
+        Po_gage: sp.P_MPa - Patm_MPa,
+        Po_psig: (sp.P_MPa - Patm_MPa) * 145.0377
+      });
+    }
+
+    const Pmax_MPa = PmAxPa / 1e6;
+    const Pmax_psi = Pmax_MPa * 145.0377;
+
+    /* ---------- 性能 ---------- */
+    const At_m2 = At * 1e-6;
+    const Ae = AeAt * At;
+    const Me = exitMachFromRatio(AeAt, k);
+    const PeRatio = Math.pow( 1 + (k-1)/2 * Me*Me, -k/(k-1) );
+    const Pa_Pa = Patm_MPa * 1e6;
+
+    let It = 0, Fmax = 0;
+    const perfRows = [];
+    for (let i = 0; i < pressRows.length; i++) {
+      const pr = pressRows[i];
+      const Pc = pr.Po_Pa;
+      const Pe = Pc * PeRatio;
+      const CF = thrustCoefficient(k, Pc, Pe, Pa_Pa, AeAt) * hnoz;
+      const F = CF * Pc * At_m2;
+      if (F > Fmax) Fmax = F;
+
+      let dt = 0;
+      if (i > 0) dt = pr.t - pressRows[i-1].t;
+      if (i > 0) It += 0.5 * (F + perfRows[i-1].F) * dt;
+
+      perfRows.push({ Po: Pc, At, AeAt, Pe, CF, F, Flb: F/4.448, t: pr.t, It });
+    }
+
+    const tThrust = tBurn;
+    const Favg = tThrust > 0 ? It / tThrust : 0;
+    const Isp  = (mgrain > 0) ? It / (mgrain * 9.80665) : 0;
+    const wf   = (Do - d0) / (2 * Do);
+    const grade = gradeFromImpulse(It);
+
+    /* ---------- 喷管设计 ---------- */
+    const alphaRad = alphaDeg * PI/180;
+    const betaRad  = betaDeg  * PI/180;
+    const Dt = Math.sqrt(4*At/PI);
+    const De = Math.sqrt(4*Ae/PI);
+    const Lconv = (Dc - Dt) / 2 / Math.tan(betaRad);
+    const Ldiv  = (De - Dt) / 2 / Math.tan(alphaRad);
+    const Lnoz  = Lconv + Ldiv;
+
+    /* ============================================================
+       渲染
+       ============================================================ */
+    setTxt('out-Vc', Vc); setTxt('out-Lgo', Lo);
+    setTxt('out-Vg', Vg); setTxt('out-Vl', Vl);
+    setTxt('out-rho-ideal', rho_ideal);
+    setTxt('out-rho-actual', rho_actual);
+    setTxt('out-mgrain', mgrain);
+    setTxt('out-Abeo', Abeo); setTxt('out-Abco', Abco);
+    setTxt('out-Abso', Abso); setTxt('out-Abo', Abo);
+    setTxt('out-Knmax', KnMax);
+    setTxt('out-Dto', Dt);
+    setTxt('out-Dtf', Dt + erosion);
+
+    const knBody = $('kn-body');
+    knBody.innerHTML = '';
+    for (const row of knRows) {
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        `<td>${row.i}</td>` +
+        `<td class="num">${row.x.toFixed(4)}</td>` +
+        `<td class="num">${row.d.toFixed(4)}</td>` +
+        `<td class="num">${row.D}</td>` +
+        `<td class="num">${row.L.toFixed(4)}</td>` +
+        `<td class="num">${row.tweb.toFixed(4)}</td>` +
+        `<td class="num">${row.Abe.toFixed(4)}</td>` +
+        `<td class="num">${row.Abc.toFixed(4)}</td>` +
+        `<td class="num">${row.Abs.toFixed(4)}</td>` +
+        `<td class="num">${row.Ab.toFixed(4)}</td>` +
+        `<td class="num">${row.At.toFixed(2)}</td>` +
+        `<td class="num">${row.Kn.toFixed(4)}</td>`;
+      knBody.appendChild(tr);
+    }
+
+    setTxt('out-M', M); setTxt('out-R', Rgas); setTxt('out-k', k);
+    setTxt('out-To', To); setTxt('out-ToAct', ToAct);
+    setTxt('out-cstar', cstar);
+    setTxt('out-Pmax', Pmax_MPa);
+    setTxt('out-Pmaxpsi', Pmax_psi);
+    setTxt('out-tburn', tBurn);
+    setTxt('out-tthrust', tThrust);
+
+    const pressBody = $('pressure-body');
+    pressBody.innerHTML = '';
+    for (const r of pressRows) {
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        `<td>${r.i}</td>` +
+        `<td class="num">${r.xi.toFixed(6)}</td>` +
+        `<td class="num">${r.tweb.toFixed(6)}</td>` +
+        `<td class="num">${r.d.toFixed(4)}</td>` +
+        `<td class="num">${r.D}</td>` +
+        `<td class="num">${r.L.toFixed(4)}</td>` +
+        `<td class="num">${r.At.toFixed(2)}</td>` +
+        `<td class="num">${r.Po_MPa.toFixed(6)}</td>` +
+        `<td class="num">${r.r.toFixed(6)}</td>` +
+        `<td class="num">${r.t.toFixed(6)}</td>` +
+        `<td class="num">${r.mGrain.toExponential(5)}</td>` +
+        `<td class="num">${r.mGen.toExponential(5)}</td>` +
+        `<td class="num">${r.mNoz.toExponential(5)}</td>` +
+        `<td class="num">${r.Po_gage.toFixed(6)}</td>` +
+        `<td class="num">${r.Po_psig.toFixed(4)}</td>`;
+      pressBody.appendChild(tr);
+    }
+
+    setTxt('out-k2', k);
+    setTxt('out-Patm2', Patm_MPa);
+    setTxt('out-Ato2', At);
+    setTxt('out-Ae', Ae);
+    setTxt('out-Meo', Me);
+    setTxt('out-De', De);
+    setTxt('out-AeAtopt', AeAt);
+    setTxt('out-AeAtavg', AeAt);
+    setTxt('out-wf', wf);
+    setTxt('out-CFmax', perfRows.length ? Math.max(...perfRows.map(r=>r.CF)) : 0);
+    setTxt('out-Fmax', Fmax);
+    setTxt('out-It', It);
+    setTxt('out-Isp', Isp);
+    $('out-class').textContent = grade;
+
+    const perfBody = $('perf-body');
+    perfBody.innerHTML = '';
+    for (const r of perfRows) {
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        `<td class="num">${r.Po.toFixed(2)}</td>` +
+        `<td class="num">${r.At.toFixed(2)}</td>` +
+        `<td class="num">${r.AeAt.toFixed(2)}</td>` +
+        `<td class="num">${r.Pe.toFixed(2)}</td>` +
+        `<td class="num">${r.CF.toFixed(4)}</td>` +
+        `<td class="num">${r.F.toFixed(4)}</td>` +
+        `<td class="num">${r.Flb.toFixed(4)}</td>` +
+        `<td class="num">${r.t.toFixed(6)}</td>` +
+        `<td class="num">${r.It.toFixed(6)}</td>`;
+      perfBody.appendChild(tr);
+    }
+
+    setTxt('out-Dc3', Dc);
+    setTxt('out-Dt3', Dt, 5);
+    setTxt('out-De3', De, 4);
+    setTxt('out-Deopt3', De, 4);
+    setTxt('out-LcN', Lconv, 4);
+    setTxt('out-LdN', Ldiv, 4);
+    setTxt('out-LoN', Lnoz, 4);
+
+    $('out-title2').textContent = title;
+    setTxt('out-mgrain2', mgrain);
+    setTxt('out-mgrainlb', mgrain * 2.20462);
+    setTxt('out-It2', It);
+    setTxt('out-Itlb', It / 4.448);
+    setTxt('out-Favg2', Favg);
+    setTxt('out-Favglb', Favg / 4.448);
+    setTxt('out-tthrust2', tThrust);
+    setTxt('out-Isp2', Isp);
+    $('out-class2').textContent = grade;
+
+    const elapsed = (performance.now() - t0).toFixed(1);
+    setAllStatus(
+      `✔ 求解完成 (${elapsed} ms)  —  Pmax = ${Pmax_MPa.toFixed(3)} MPa, ` +
+      `It = ${It.toFixed(2)} N·s, Fmax = ${Fmax.toFixed(1)} N, 等级 = ${grade}`,
+      'ok'
+    );
+
+  } catch (err) {
+    setAllStatus('✘ 求解失败：' + err.message, 'err');
+    console.error(err);
+  }
+}
+
+/* Tab 切换 */
+const tabs = document.querySelectorAll('#tabs button');
+tabs.forEach(btn => {
+  btn.addEventListener('click', () => {
+    tabs.forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('section.sheet').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.target).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+});
+
+/* 燃速表渲染（静态数据） */
+(function renderBurnTable() {
+  const body = $('burn-body');
+  body.innerHTML = '';
+  for (const [prop, segs] of Object.entries(BURN_DATA)) {
+    for (const s of segs) {
+      const tr = document.createElement('tr');
+      const pMax = isFinite(s.pMax) ? s.pMax.toFixed(6) : '∞';
+      tr.innerHTML =
+        `<td>${prop}</td>` +
+        `<td class="num">${s.pMin} → ${pMax}</td>` +
+        `<td class="num">${s.a}</td>` +
+        `<td class="num">${s.n}</td>`;
+      body.appendChild(tr);
+    }
+  }
+})();
+
+/* 初始化 */
+window.addEventListener('DOMContentLoaded', () => {
+  // 每个求解按钮都调用同一个 solve()
+  document.querySelectorAll('.btn-solve').forEach(b => b.addEventListener('click', solve));
+
+  // 输入变化时清除状态提示
+  document.querySelectorAll('input.inp, select.inp').forEach(el => {
+    el.addEventListener('input', () => {
+      setAllStatus('数据已修改 — 点击任意页的"求解"按钮重新计算。', '');
+    });
+    el.addEventListener('change', () => {
+      setAllStatus('数据已修改 — 点击任意页的"求解"按钮重新计算。', '');
+    });
+  });
+
+  // 默认清空输出
+  clearOutputs();
+  setAllStatus('输入已清空。请在"数据和喷燃比"页填写全部蓝色单元格，然后点击任意页的"求解"按钮。', '');
+});
+</script>
+
+</body>
+</html>

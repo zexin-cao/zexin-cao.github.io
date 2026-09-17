@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SRM 喷管羽流 · 马赫环物理可视化</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#06090f;--panel:#0c1420;--line:#1a2c46;
+  --txt:#c3d1e8;--txt2:#5e7093;--acc:#00d4ff;--ok:#00ff9d;--warn:#ff4d4d;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--txt);
+  font-family:'Segoe UI','Microsoft YaHei',system-ui,sans-serif}
+.app{display:flex;flex-direction:column;height:100vh}
+header{display:flex;align-items:center;gap:14px;padding:9px 18px;
+  background:linear-gradient(180deg,#0a1220,#070d17);
+  border-bottom:1px solid var(--line);flex-shrink:0}
+header h1{font-size:14px;font-weight:600;letter-spacing:1.2px;
+  background:linear-gradient(90deg,#00d4ff,#7b6bff,#ff6b35);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.badge{font-size:10px;padding:3px 10px;border-radius:14px;
+  background:rgba(0,212,255,.10);border:1px solid rgba(0,212,255,.30);
+  color:var(--acc);letter-spacing:.5px}
+.spacer{flex:1}
+.mini{display:flex;gap:16px;font-size:10px;color:var(--txt2)}
+.mini b{color:var(--acc);font-weight:600}
+main{display:flex;flex:1;min-height:0}
+.side{width:290px;flex-shrink:0;background:var(--panel);
+  border-right:1px solid var(--line);overflow-y:auto;padding:12px}
+.side::-webkit-scrollbar{width:6px}
+.side::-webkit-scrollbar-thumb{background:#22355a;border-radius:3px}
+.grp{margin-bottom:14px}
+.grp-t{font-size:10px;letter-spacing:1.6px;color:var(--acc);
+  text-transform:uppercase;margin-bottom:7px;padding-bottom:4px;
+  border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px}
+.grp-t::before{content:'';width:3px;height:10px;
+  background:linear-gradient(180deg,var(--acc),transparent);border-radius:2px}
+.row{display:flex;justify-content:space-between;align-items:center;
+  font-size:11.5px;padding:3px 0;gap:6px}
+.row .k{color:var(--txt2);white-space:nowrap}
+.row .v{color:var(--txt);font-family:'Consolas',monospace;font-weight:600;
+  text-align:right;word-break:break-all;font-size:11px}
+.row .v.hi{color:var(--acc)}
+.row .v.g{color:var(--ok)}
+.upload-zone{border:1.5px dashed #2a4166;border-radius:8px;padding:14px 10px;
+  text-align:center;cursor:pointer;transition:.2s;
+  background:rgba(0,212,255,.02);margin-bottom:12px}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--acc);background:rgba(0,212,255,.08)}
+.upload-zone .icon{font-size:24px;color:var(--acc);margin-bottom:4px}
+.upload-zone .txt{font-size:11px;color:var(--txt2);line-height:1.5}
+.upload-zone .txt b{color:var(--acc);display:block;margin-bottom:2px}
+.btns{display:flex;gap:5px;margin-top:6px}
+button{flex:1;padding:6px 4px;font-size:10.5px;cursor:pointer;
+  background:#152540;color:var(--txt);border:1px solid var(--line);
+  border-radius:4px;transition:.15s;font-family:inherit}
+button:hover{background:#1d3455;border-color:var(--acc);color:#fff}
+button.on{background:linear-gradient(180deg,#0a4a6e,#06304a);
+  border-color:var(--acc);color:var(--acc)}
+input[type=range]{-webkit-appearance:none;width:100%;height:5px;
+  background:linear-gradient(90deg,#1a2c4a,#223c66);
+  border-radius:3px;outline:none;margin:7px 0 3px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;
+  width:15px;height:15px;background:radial-gradient(circle at 35% 35%,#5ff0ff,#0099cc);
+  border-radius:50%;cursor:pointer;box-shadow:0 0 8px rgba(0,212,255,.8);border:1px solid #0af}
+.num{width:66px;background:#0a1322;border:1px solid var(--line);
+  color:var(--acc);font-family:'Consolas',monospace;font-size:11px;
+  padding:3px 5px;border-radius:4px;text-align:right;outline:none}
+.num:focus{border-color:var(--acc);box-shadow:0 0 5px rgba(0,212,255,.4)}
+.lamp{display:flex;align-items:center;gap:6px;font-size:10.5px;
+  padding:5px 8px;border-radius:4px;background:#0a1322;
+  border:1px solid var(--line);margin-top:5px}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot.u{background:#ff6b35;box-shadow:0 0 7px #ff6b35}
+.dot.o{background:#00d4ff;box-shadow:0 0 7px #00d4ff}
+.dot.m{background:#00ff9d;box-shadow:0 0 7px #00ff9d}
+.dot.g{background:#5e7093}
+.viewport{flex:1;position:relative;min-width:0;
+  background:radial-gradient(ellipse at 35% 50%,#080d18 0%,#03060b 100%)}
+canvas{display:block;width:100%;height:100%}
+.hud{position:absolute;top:10px;right:12px;
+  background:rgba(6,10,18,.85);border:1px solid var(--line);
+  border-radius:6px;padding:8px 11px;font-size:10.5px;
+  font-family:'Consolas',monospace;line-height:1.7;
+  backdrop-filter:blur(6px);min-width:190px}
+.hud .t{font-size:9.5px;letter-spacing:1.4px;color:var(--acc);
+  margin-bottom:4px;border-bottom:1px solid var(--line);padding-bottom:3px}
+.hud .r{display:flex;justify-content:space-between;gap:12px}
+.hud .r span:first-child{color:var(--txt2)}
+.hud .r span:last-child{color:#e8f2ff}
+.legend{position:absolute;bottom:12px;right:12px;
+  background:rgba(6,10,18,.85);border:1px solid var(--line);
+  border-radius:6px;padding:7px 10px;font-size:9.5px;backdrop-filter:blur(6px)}
+.bar{width:150px;height:9px;border-radius:4px;margin:3px 0;
+  background:linear-gradient(90deg,#200a00,#7a1800,#e04800,#ffa500,#ffe28a,#ffffff);
+  border:1px solid var(--line)}
+.lbl{display:flex;justify-content:space-between;color:var(--txt2);font-size:9px}
+.info-bar{position:absolute;bottom:12px;left:12px;font-size:10px;
+  color:var(--txt2);font-family:'Consolas',monospace}
+.info-bar b{color:var(--acc)}
+.tip{margin-top:6px;padding:6px 8px;border-radius:4px;
+  background:rgba(255,138,61,.08);border:1px solid rgba(255,138,61,.30);
+  font-size:10px;color:#ffb37a;line-height:1.5;display:none}
+.tip.show{display:block}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>◈ 火箭发动机喷管羽流 · 马赫环可视化</h1>
+    <span class="badge" id="srcBadge">未加载数据</span>
+    <div class="spacer"></div>
+    <div class="mini">
+      <div>γ <b id="hGamma">—</b></div>
+      <div>R <b id="hR">—</b></div>
+      <div>T₀ <b id="hT0m">—</b></div>
+    </div>
+  </header>
+  <main>
+    <aside class="side">
+      <div class="upload-zone" id="dropZone">
+        <div class="icon">⬆</div>
+        <div class="txt">
+          <b>点击或拖拽上传 SRM_2023_chs.xls</b>
+          解析引擎参数 · 自动识别喷管几何
+        </div>
+      </div>
+      <input type="file" id="fileInput" accept=".xls,.xlsx" hidden>
+
+      <div class="grp">
+        <div class="grp-t">解析到的参数</div>
+        <div class="parsed" id="parsedList"
+          style="font-size:10px;color:var(--txt2);line-height:1.6;background:#0a1322;border:1px solid var(--line);border-radius:5px;padding:6px 8px;max-height:130px;overflow-y:auto;font-family:Consolas,monospace">
+          尚未加载文件 · 使用默认 MQ-1 参数
+        </div>
+      </div>
+
+      <div class="grp">
+        <div class="grp-t">燃烧室压力 P<sub>c</sub></div>
+        <input type="range" id="pcRange" min="0.3" max="20" step="0.01" value="13.5">
+        <div class="row">
+          <span class="k">P<sub>c</sub></span>
+          <input class="num" id="pcNum" type="number" value="13.50" step="0.1" min="0.3" max="20">
+          <span class="k">MPa</span>
+        </div>
+        <div class="btns">
+          <button id="btnSweep">▶ 压力扫描</button>
+          <button id="btnStop">■ 停止</button>
+        </div>
+        <div class="tip" id="tipOver">
+          ⚠ 当前为<span style="color:#00d4ff">过膨胀</span>工况 (Pe &lt; Pa)，无马赫环。<br>
+          提高 P<sub>c</sub> 到 <b id="tipPc">11.5</b> MPa 以上即可看到马赫环。
+        </div>
+        <div class="tip" id="tipUnder" style="background:rgba(0,255,157,.06);border-color:rgba(0,255,157,.30);color:#7fffc7">
+          ✓ 欠膨胀工况 · 激波胞格已生成 · 可见 <b id="tipRingCnt">0</b> 个马赫环
+        </div>
+      </div>
+
+      <div class="grp">
+        <div class="grp-t">环境压力 P<sub>a</sub></div>
+        <div class="row">
+          <span class="k">P<sub>a</sub></span>
+          <input class="num" id="paNum" type="number" value="0.101" step="0.001" min="0.0001" max="0.5">
+          <span class="k">MPa</span>
+        </div>
+        <div class="btns">
+          <button id="btnSL" class="on">海平面</button>
+          <button id="btnAlt">高空</button>
+          <button id="btnVac">真空</button>
+        </div>
+      </div>
+
+      <div class="grp">
+        <div class="grp-t">喷管几何</div>
+        <div class="row"><span class="k">喉部 D<sub>t</sub></span><span class="v" id="vDt">—</span></div>
+        <div class="row"><span class="k">出口 D<sub>e</sub></span><span class="v" id="vDe">—</span></div>
+        <div class="row"><span class="k">扩张比 ε=A<sub>e</sub>/A<sub>t</sub></span><span class="v hi" id="vAR">—</span></div>
+        <div class="row"><span class="k">扩张半角 α</span><span class="v" id="vAlpha">—</span></div>
+      </div>
+
+      <div class="grp">
+        <div class="grp-t">实时流动状态</div>
+        <div class="row"><span class="k">出口马赫数 M<sub>e</sub></span><span class="v hi" id="vMe">—</span></div>
+        <div class="row"><span class="k">出口压力 P<sub>e</sub></span><span class="v" id="vPe">—</span></div>
+        <div class="row"><span class="k">出口温度 T<sub>e</sub></span><span class="v" id="vTe">—</span></div>
+        <div class="row"><span class="k">出口速度 V<sub>e</sub></span><span class="v" id="vVe">—</span></div>
+        <div class="row"><span class="k">质量流量 ṁ</span><span class="v" id="vMdot">—</span></div>
+        <div class="row"><span class="k">推力 F</span><span class="v hi" id="vF">—</span></div>
+        <div class="row"><span class="k">比冲 I<sub>sp</sub></span><span class="v" id="vIsp">—</span></div>
+        <div class="lamp"><div class="dot g" id="lampDot"></div><span id="lampTxt">待机</span></div>
+      </div>
+
+      <div class="grp">
+        <div class="grp-t">物理模型</div>
+        <div style="font-size:10px;color:var(--txt2);line-height:1.7">
+          完全气体等熵流 + 面积-马赫关系 + Prandtl-Meyer 膨胀波。<br>
+          激波胞格长度按经验式：<br>
+          <b style="color:var(--ok)">L<sub>cell</sub>/Dₑ ≈ 1.15·√(NPR−1)</b><br>
+          后续胞格按 0.8 递减，强度指数衰减。
+        </div>
+      </div>
+    </aside>
+
+    <section class="viewport">
+      <canvas id="cv"></canvas>
+      <div class="hud">
+        <div class="t">TELEMETRY</div>
+        <div class="r"><span>P₀ 滞止压力</span><span id="hP0">—</span></div>
+        <div class="r"><span>T₀ 滞止温度</span><span id="hT0">—</span></div>
+        <div class="r"><span>ρ₀ 滞止密度</span><span id="hRho">—</span></div>
+        <div class="r"><span>ṁ 质量流量</span><span id="hMdot">—</span></div>
+        <div class="r"><span>a* 临界声速</span><span id="hAst">—</span></div>
+        <div class="r"><span>c* 特征速度</span><span id="hCst">—</span></div>
+        <div class="r"><span>NPR Pₑ/Pₐ</span><span id="hNPR">—</span></div>
+        <div class="r"><span>L_cell 激波胞格</span><span id="hLcell">—</span></div>
+        <div class="r"><span>环数</span><span id="hRingN">—</span></div>
+      </div>
+      <div class="legend">
+        <div style="color:#5e7093;letter-spacing:1px;font-size:9.5px;margin-bottom:1px">
+          静态温度 T (K)
+        </div>
+        <div class="bar"></div>
+        <div class="lbl"><span>800</span><span>1200</span><span>1600</span></div>
+      </div>
+      <div class="info-bar">
+        <b>◈</b> 等熵超声速膨胀 · 马赫环由激波胞格驱动
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+/* =========================================================================
+   1. 默认配置（SRM_2023.XLS / MQ-1 发动机）
+   ========================================================================= */
+const DEFAULT = {
+  Dt: 3.799807421080277,
+  De: 14.716590860639267,
+  Dc: 22,
+  Lc: 9.100096289459863,
+  Ld: 20.370995225830338,
+  alpha: 15 * Math.PI/180,
+  beta:  45 * Math.PI/180,
+  gamma: 1.137,
+  R: 208.37092731829574,
+  T0: 1520,
+  T0_ideal: 1600,
+  Pa: 0.101,
+  hnoz: 0.85,
+  hc: 0.95,
+  M: 39.9,
+  propType: 'KNSB（细）',
+  targetMEOP: 8,
+  cstar_ref: 884.87,
+  Me_ref: 3.3419275409935993,
+  Pmax_ref: 15.113004566790043,
+};
+
+let CFG = { ...DEFAULT };
+let At, Ae, AR, rt, re, rc;
+function recomputeGeometry() {
+  At = Math.PI * Math.pow(CFG.Dt/2, 2);
+  Ae = Math.PI * Math.pow(CFG.De/2, 2);
+  AR = Ae / At;
+  rt = CFG.Dt / 2;
+  re = CFG.De / 2;
+  rc = CFG.Dc / 2;
+}
+recomputeGeometry();
+
+/* =========================================================================
+   2. 可压缩流物理函数
+   ========================================================================= */
+function areaRatio(M, g) {
+  if (M <= 0) return Infinity;
+  const t = 1 + (g-1)/2 * M*M;
+  const e = (g+1) / (2*(g-1));
+  return (1/M) * Math.pow(2/(g+1) * t, e);
+}
+function machFromArea(target, g, supersonic) {
+  let lo, hi;
+  if (supersonic) { lo = 1.0; hi = 200; } else { lo = 1e-6; hi = 1.0; }
+  for (let i = 0; i < 200; i++) {
+    const m = 0.5*(lo+hi);
+    const f = areaRatio(m, g);
+    if (supersonic) { if (f < target) lo = m; else hi = m; }
+    else            { if (f > target) lo = m; else hi = m; }
+  }
+  return 0.5*(lo+hi);
+}
+function machFromPR(pr, g) {
+  if (pr >= 1) return 0;
+  const val = Math.pow(pr, -(g-1)/g);
+  return Math.sqrt(Math.max(0, (val-1) * 2/(g-1)));
+}
+function nuPM(M, g) {
+  if (M <= 1) return 0;
+  const gp = (g+1)/(g-1);
+  const s  = Math.sqrt(gp);
+  const m2 = M*M - 1;
+  return s*Math.atan(Math.sqrt(m2/gp)) - Math.atan(Math.sqrt(m2));
+}
+function isen(M, g) {
+  const tt = 1 + (g-1)/2 * M*M;
+  return { T0_T: tt, P0_P: Math.pow(tt, g/(g-1)), rho0_rho: Math.pow(tt, 1/(g-1)) };
+}
+
+/* =========================================================================
+   3. 发动机求解
+   ========================================================================= */
+function solve(Pc, Pa) {
+  const g = CFG.gamma, T0 = CFG.T0, R = CFG.R;
+
+  const Me = machFromArea(AR, g, true);
+  const s = isen(Me, g);
+  const Te = T0 / s.T0_T;
+  const Pe = Pc / s.P0_P;
+  const rhoe = (Pe*1e6) / (R*Te);
+  const ae = Math.sqrt(g*R*Te);
+  const Ve = Me * ae;
+
+  const mdot = At*1e-6 * Pc*1e6 * Math.sqrt(g/(R*T0))
+             * Math.pow(2/(g+1), (g+1)/(2*(g-1)));
+  const cstar = (Pc*1e6 * At*1e-6) / mdot;
+
+  const F_ideal = mdot*Ve + (Pe - Pa)*1e6 * Ae*1e-6;
+  const F = CFG.hnoz * F_ideal;
+  const Isp = F / (mdot * 9.80665);
+
+  const NPR = Pe / Pa;
+  let regime;
+  if (NPR > 1.02) regime = 'under';
+  else if (NPR < 0.98) regime = 'over';
+  else regime = 'matched';
+
+  // 完全膨胀（至 Pa）的目标马赫数
+  let Mfar = 1;
+  if (Pc/Pa > 1) Mfar = machFromPR(Pa/Pc, g);
+  const sFar = isen(Mfar, g);
+  const Tfar = T0 / sFar.T0_T;
+  const rhoFar = (Pa*1e6) / (R * Tfar);
+  const Vfar = Mfar * Math.sqrt(g*R*Tfar);
+
+  const nuE   = nuPM(Me, g);
+  const nuFar = nuPM(Mfar, g);
+  const thetaPM = nuFar - nuE;
+
+  // 羽流远场半径（质量守恒）
+  let rFar = re;
+  if (NPR > 1.02 && Mfar > 1) {
+    rFar = re * Math.sqrt((rhoe * Ve) / (rhoFar * Vfar));
+    rFar = Math.min(rFar, 4.5*re);
+  } else if (NPR < 0.98) {
+    rFar = re * Math.max(0.65, 0.85 + 0.15*NPR);
+  }
+
+  // ===== 激波胞格（马赫环）参数 =====
+  // 经验公式：L1/De ≈ 1.15·√(NPR−1)（适用于 NPR>1.05）
+  let Lcell = 0, ringCount = 0;
+  if (regime === 'under') {
+    Lcell = 1.15 * CFG.De * Math.sqrt(Math.max(0, NPR - 1));
+    // 后续胞格按 0.8 递减；总可见长度取 8·De
+    let x = Lcell * 0.5, step = Lcell, total = 0;
+    while (x < 8*CFG.De && ringCount < 6) {
+      ringCount++;
+      x += step;
+      step *= 0.8;
+    }
+  }
+
+  return {
+    Pc, Pa, Me, Te, Pe, rhoe, Ve, mdot, F, F_ideal, Isp, cstar,
+    NPR, regime, thetaPM, rFar, nuE, nuFar, Mfar, Tfar,
+    rhoFar, Vfar, ae, T0, g, R, Lcell, ringCount,
+  };
+}
+
+/* =========================================================================
+   4. 喷管内部流场
+   ========================================================================= */
+function nozzleFlow(x_mm, Pc) {
+  const g = CFG.gamma;
+  let r, Mach;
+  if (x_mm <= -CFG.Lc) { r = rc; Mach = 0.05; }
+  else if (x_mm < 0) {
+    const t = (x_mm + CFG.Lc) / CFG.Lc;
+    r = rc + (rt - rc) * t;
+    const ar = Math.pow(r/rt, 2);
+    Mach = (ar > 1.0001) ? machFromArea(ar, g, false) : 1.0;
+  } else if (x_mm <= CFG.Ld) {
+    const t = x_mm / CFG.Ld;
+    r = rt + (re - rt) * t;
+    const ar = Math.pow(r/rt, 2);
+    Mach = (ar > 1.0001) ? machFromArea(ar, g, true) : 1.0;
+  } else {
+    r = re; Mach = machFromArea(AR, g, true);
+  }
+  const s = isen(Mach, g);
+  const T = CFG.T0 / s.T0_T;
+  const P = Pc / s.P0_P;
+  const rho = P*1e6 / (CFG.R * T);
+  return { r, Mach, T, P, rho };
+}
+
+/* =========================================================================
+   5. 马赫环（激波胞格）位置计算
+   ========================================================================= */
+/**
+ * 欠膨胀射流激波胞格：每个胞格是一个"菱形"区域，
+ * 轴线上的节点（马赫环）位于胞格中心。
+ *
+ * 经验规律（基于 Love et al. 1959 / 经典欠膨胀射流数据）：
+ *   L1 / De ≈ 1.15 · √(NPR − 1)        第一胞格长度
+ *   L_{n+1} ≈ 0.8 · L_n                 后续递减
+ *   环强度 ≈ exp(−0.4·n)                指数衰减
+ */
+function machRings(st) {
+  if (st.regime !== 'under' || st.Lcell <= 0) return [];
+  const rings = [];
+  let step = st.Lcell;
+  let x = step * 0.5;
+  let n = 0;
+  while (x < 9*CFG.De && n < 6) {
+    rings.push({
+      x: x,                                       // 沿轴距离 mm
+      strength: Math.exp(-n * 0.38),              // 亮度衰减
+      width: step * 0.55,                         // 环宽度 mm
+      idx: n + 1,
+    });
+    x += step;
+    step *= 0.8;
+    n++;
+  }
+  return rings;
+}
+
+/* =========================================================================
+   6. 羽流边界（含胞格振荡）
+   ========================================================================= */
+function plumeRadius(x_mm, st) {
+  if (x_mm <= 0) return re;
+  let r;
+
+  if (st.regime === 'under') {
+    // 平均膨胀轮廓
+    const dr = st.rFar - re;
+    let rMean;
+    if (dr < 1e-4) rMean = re;
+    else {
+      let slope = Math.tan(Math.max(0.02, Math.min(0.9, st.thetaPM)));
+      if (!isFinite(slope) || slope <= 0) slope = 0.15;
+      let L = dr / slope;
+      L = Math.max(L, 0.4 * CFG.De);
+      L = Math.min(L, 8 * CFG.De);
+      rMean = st.rFar - dr * Math.exp(-x_mm / L);
+    }
+    // 叠加激波胞格振荡（边界随胞格周期呼吸）
+    if (st.Lcell > 0) {
+      const phase = 2*Math.PI * x_mm / st.Lcell;
+      const decay = Math.exp(-x_mm / (7*CFG.De));
+      const amp = 0.10 * re * decay;
+      r = rMean + amp * Math.cos(phase);
+    } else {
+      r = rMean;
+    }
+    return Math.max(r, 0.35*re);
+  } else if (st.regime === 'over') {
+    const xShock = 1.3 * CFG.De;
+    const rMin = re * Math.max(0.55, 1 - 0.5*(1 - st.NPR));
+    const rRec = re * (0.85 + 0.15*st.NPR);
+    if (x_mm < xShock)
+      return re + (rMin - re) * (1 - Math.exp(-x_mm/(0.45*CFG.De)));
+    else
+      return rMin + (rRec - rMin) * (1 - Math.exp(-(x_mm-xShock)/(2.2*CFG.De)));
+  } else {
+    return re * (1 + 0.03*(1 - Math.exp(-x_mm/(2*CFG.De))));
+  }
+}
+
+/** 沿轴线的马赫数分布 */
+function plumeMach(x_mm, st) {
+  if (x_mm <= 0) return st.Me;
+  const M1 = st.Mfar > st.Me ? st.Mfar : st.Me;
+  const L = 1.6 * CFG.De;
+  let M = st.Me + (M1 - st.Me) * (1 - Math.exp(-x_mm/L));
+
+  // 沿激波胞格叠加马赫数振荡（物理上：膨胀区 M↑，压缩区 M↓）
+  if (st.Lcell > 0) {
+    const phase = 2*Math.PI * x_mm / st.Lcell;
+    const decay = Math.exp(-x_mm / (7*CFG.De));
+    M += 0.18 * st.Me * decay * Math.cos(phase + Math.PI);
+  }
+
+  if (st.regime === 'over') {
+    const strength = Math.min(1, (1 - st.NPR)*0.9);
+    const drop = strength * (st.Me - 1.5) *
+                 Math.exp(-Math.pow((x_mm-1.3*CFG.De)/(0.7*CFG.De),2));
+    M = Math.max(1.1, M - drop);
+  }
+  return Math.max(M, 0.5);
+}
+
+/* =========================================================================
+   7. 颜色映射
+   ========================================================================= */
+function tempColor(T) {
+  let t = (T - 750) / (1650 - 750);
+  t = Math.max(0, Math.min(1, t));
+  let r, g, b;
+  if (t < 0.30) { const s = t/0.30; r = 50 + 150*s; g = 3 + 22*s; b = 0; }
+  else if (t < 0.58) { const s = (t-0.30)/0.28; r = 200 + 55*s; g = 25 + 100*s; b = 0; }
+  else if (t < 0.80) { const s = (t-0.58)/0.22; r = 255; g = 125 + 90*s; b = 0 + 40*s; }
+  else { const s = (t-0.80)/0.20; r = 255; g = 215 + 40*s; b = 40 + 200*s; }
+  return [r|0, g|0, b|0];
+}
+
+/* =========================================================================
+   8. Canvas 渲染
+   ========================================================================= */
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W, H, AXIS_Y, PX, THROAT_X, EXIT_X, CHAMBER_X0;
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = cv.parentElement.getBoundingClientRect();
+  W = Math.max(600, rect.width);
+  H = Math.max(420, rect.height);
+  cv.width = W * dpr; cv.height = H * dpr;
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // 需要显示：药柱 + 喷管 + 羽流（最多 8 倍出口直径）
+  const internalMm = CFG.Lc + CFG.Ld;
+  const plumeMm = 8 * CFG.De;
+  const totalMm = internalMm + plumeMm + 12;   // +12 留边
+  PX = Math.min(6.5, (W - 60) / totalMm);
+  PX = Math.max(2.0, PX);
+
+  AXIS_Y = H * 0.52;
+  THROAT_X = Math.max(80, W * 0.11);
+  EXIT_X = THROAT_X + CFG.Ld * PX;
+  CHAMBER_X0 = THROAT_X - CFG.Lc*PX - 26*PX;
+}
+window.addEventListener('resize', resize);
+
+function drawGrid() {
+  ctx.strokeStyle = 'rgba(26,44,70,0.30)';
+  ctx.lineWidth = 1;
+  const step = 42;
+  ctx.beginPath();
+  for (let x = 0; x < W; x += step) { ctx.moveTo(x+.5,0); ctx.lineTo(x+.5,H); }
+  for (let y = 0; y < H; y += step) { ctx.moveTo(0,y+.5); ctx.lineTo(W,y+.5); }
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(0,212,255,0.14)';
+  ctx.setLineDash([8,7]);
+  ctx.beginPath(); ctx.moveTo(0, AXIS_Y); ctx.lineTo(W, AXIS_Y); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+/* ---------- 羽流主体 ---------- */
+function drawPlume(st) {
+  const x0 = EXIT_X;
+  const maxX = W - 6;
+  const Lmm = (maxX - x0) / PX;
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x0, 0, maxX-x0, H); ctx.clip();
+
+  const N = 360;
+  for (let i = 0; i < N; i++) {
+    const xa = Lmm*i/N, xb = Lmm*(i+1)/N, xm = 0.5*(xa+xb);
+    const r = plumeRadius(xm, st);
+    const M = plumeMach(xm, st);
+    const s = isen(M, st.g);
+    const T = st.T0 / s.T0_T;
+    const [cr,cg,cb] = tempColor(T);
+
+    const decay = Math.exp(-xm / (26*CFG.De));
+    let alpha = Math.max(0.06, 0.90*decay + 0.06);
+
+    // 轴线附近额外增亮（马赫环位置在轴线上最亮）
+    const pxA = x0 + xa*PX, pxB = x0 + xb*PX, rp = r*PX;
+    ctx.fillStyle = `rgba(${cr},${cg},${cb},${alpha})`;
+    ctx.fillRect(pxA, AXIS_Y - rp, (pxB-pxA)+1, 2*rp);
+  }
+
+  // 边界线
+  ctx.beginPath();
+  for (let i = 0; i <= N; i++) {
+    const x = Lmm*i/N;
+    const r = plumeRadius(x, st)*PX;
+    const px = x0 + x*PX;
+    if (i === 0) ctx.moveTo(px, AXIS_Y - r);
+    else ctx.lineTo(px, AXIS_Y - r);
+  }
+  for (let i = N; i >= 0; i--) {
+    const x = Lmm*i/N;
+    const r = plumeRadius(x, st)*PX;
+    ctx.lineTo(x0 + x*PX, AXIS_Y + r);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = 'rgba(255,160,80,0.50)';
+  ctx.lineWidth = 1.0;
+  ctx.stroke();
+
+  // 核心亮线
+  const coreEnd = Math.min(maxX, x0 + 30*CFG.De*PX);
+  const cg = ctx.createLinearGradient(x0,0,coreEnd,0);
+  cg.addColorStop(0, 'rgba(255,255,255,0.45)');
+  cg.addColorStop(0.4,'rgba(255,225,150,0.15)');
+  cg.addColorStop(1, 'rgba(255,140,60,0)');
+  ctx.fillStyle = cg;
+  ctx.beginPath();
+  ctx.moveTo(x0, AXIS_Y - re*PX*0.55);
+  ctx.lineTo(coreEnd, AXIS_Y - re*PX*0.20);
+  ctx.lineTo(coreEnd, AXIS_Y + re*PX*0.20);
+  ctx.lineTo(x0, AXIS_Y + re*PX*0.55);
+  ctx.closePath();
+  ctx.fill();
+
+  // ===== 马赫环（激波胞格节点，亮菱形光斑）=====
+  drawMachDiamonds(st, x0);
+
+  // ===== PM 膨胀扇 =====
+  if (st.thetaPM > 0.01 && st.regime === 'under') {
+    ctx.strokeStyle = 'rgba(110,210,255,0.22)';
+    ctx.lineWidth = 0.85;
+    const nW = 9;
+    for (let k = 0; k < nW; k++) {
+      const frac = k/(nW-1);
+      const ang = CFG.alpha + st.thetaPM*(1-frac);
+      const len = (4 + 7*frac) * CFG.De * PX;
+      ctx.beginPath();
+      ctx.moveTo(x0, AXIS_Y - re*PX);
+      for (let t = 1; t <= 12; t++) {
+        const s = t/12;
+        ctx.lineTo(x0 + len*s*Math.cos(ang),
+                   AXIS_Y - re*PX - len*s*Math.sin(ang));
+      }
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x0, AXIS_Y + re*PX);
+      for (let t = 1; t <= 12; t++) {
+        const s = t/12;
+        ctx.lineTo(x0 + len*s*Math.cos(ang),
+                   AXIS_Y + re*PX + len*s*Math.sin(ang));
+      }
+      ctx.stroke();
+    }
+  }
+
+  // ===== 过膨胀：斜激波 + 马赫盘 =====
+  if (st.regime === 'over') {
+    const strength = Math.min(1, (1 - st.NPR) / 0.9);
+    const xs = x0 + 1.3*CFG.De*PX;
+    const rS = re*PX*(1.5 + 0.7*strength);
+    ctx.strokeStyle = `rgba(255,90,60,${0.35+0.4*strength})`;
+    ctx.lineWidth = 1.5 + 1.5*strength;
+    ctx.beginPath();
+    ctx.moveTo(x0, AXIS_Y - re*PX);
+    ctx.quadraticCurveTo(x0 + 0.6*CFG.De*PX, AXIS_Y - rS*0.85, xs, AXIS_Y - rS*0.30);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x0, AXIS_Y + re*PX);
+    ctx.quadraticCurveTo(x0 + 0.6*CFG.De*PX, AXIS_Y + rS*0.85, xs, AXIS_Y + rS*0.30);
+    ctx.stroke();
+    if (st.NPR < 0.55) {
+      const xm = x0 + 1.5*CFG.De*PX;
+      const rm = re*PX*0.65;
+      ctx.strokeStyle = `rgba(255,210,90,${0.55*strength})`;
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.ellipse(xm, AXIS_Y, 3.2, rm, 0, 0, Math.PI*2);
+      ctx.stroke();
+      ctx.fillStyle = `rgba(255,240,180,${0.25*strength})`;
+      ctx.beginPath();
+      ctx.ellipse(xm, AXIS_Y, 2.8, rm*0.95, 0, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  drawParticles(st, Lmm, x0);
+  ctx.restore();
+}
+
+/* ---------- 马赫环绘制（核心） ---------- */
+function drawMachDiamonds(st, x0) {
+  const rings = machRings(st);
+  if (rings.length === 0) return;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';   // 叠加增亮
+
+  for (const d of rings) {
+    const px = x0 + d.x * PX;
+    if (px > W) break;
+
+    const halfW = Math.min(d.width * 0.5 * PX, 40);
+    const halfH = re * PX * (0.65 + 0.45 * d.strength);
+
+    // —— 亮菱形光斑（径向渐变）
+    const grd = ctx.createRadialGradient(px, AXIS_Y, 0, px, AXIS_Y,
+                                          Math.max(halfW, halfH));
+    grd.addColorStop(0,    `rgba(255,255,255,${0.95*d.strength})`);
+    grd.addColorStop(0.22, `rgba(255,248,225,${0.80*d.strength})`);
+    grd.addColorStop(0.50, `rgba(255,205,135,${0.40*d.strength})`);
+    grd.addColorStop(0.80, `rgba(255,140, 50,${0.15*d.strength})`);
+    grd.addColorStop(1,    `rgba(255, 90, 20,0)`);
+
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.ellipse(px, AXIS_Y, halfW, halfH, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // —— 菱形边线（胞格结构示意）
+    ctx.strokeStyle = `rgba(255,240,200,${0.55*d.strength})`;
+    ctx.lineWidth = 1.1;
+    ctx.beginPath();
+    // 上下菱形
+    ctx.moveTo(px - halfW, AXIS_Y);
+    ctx.lineTo(px, AXIS_Y - halfH);
+    ctx.lineTo(px + halfW, AXIS_Y);
+    ctx.lineTo(px, AXIS_Y + halfH);
+    ctx.closePath();
+    ctx.stroke();
+
+    // —— 中心亮核
+    const coreR = Math.max(2, halfH * 0.32);
+    const coreGrd = ctx.createRadialGradient(px, AXIS_Y, 0, px, AXIS_Y, coreR);
+    coreGrd.addColorStop(0, `rgba(255,255,255,${1.0*d.strength})`);
+    coreGrd.addColorStop(1, `rgba(255,230,180,0)`);
+    ctx.fillStyle = coreGrd;
+    ctx.beginPath();
+    ctx.arc(px, AXIS_Y, coreR, 0, Math.PI*2);
+    ctx.fill();
+
+    // —— 环序号标注
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = `rgba(255,220,150,${0.75*d.strength})`;
+    ctx.font = '9px Consolas, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('#' + d.idx, px, AXIS_Y - halfH - 6);
+    ctx.globalCompositeOperation = 'lighter';
+  }
+  ctx.restore();
+}
+
+/* ---------- 粒子 ---------- */
+let particles = [], pInit = false;
+function initParticles() {
+  particles = [];
+  for (let i = 0; i < 100; i++) {
+    particles.push({
+      x: Math.random(),
+      lat: (Math.random()*2-1)*0.95,
+      sp: 0.4 + Math.random()*0.8,
+      size: 0.6 + Math.random()*1.4,
+      a: 0.10 + Math.random()*0.4
+    });
+  }
+  pInit = true;
+}
+function drawParticles(st, Lmm, x0) {
+  if (!pInit) initParticles();
+  for (const p of particles) {
+    const xm = p.x * Lmm;
+    const r = plumeRadius(xm, st);
+    const rr = r * p.lat;
+    const px = x0 + xm*PX, py = AXIS_Y + rr*PX;
+    if (px > x0 && px < W-2) {
+      const fade = Math.exp(-xm/(28*CFG.De));
+      const [cr,cg,cb] = tempColor(st.T0*0.85);
+      ctx.fillStyle = `rgba(${Math.min(255,cr+40)},${Math.min(255,cg+30)},${cb},${p.a*fade})`;
+      ctx.beginPath();
+      ctx.arc(px, py, p.size, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+}
+function stepParticles(dt) {
+  if (!pInit) return;
+  for (const p of particles) {
+    p.x += p.sp * dt * 0.5;
+    if (p.x > 1.02) {
+      p.x = -0.02;
+      p.lat = (Math.random()*2-1)*0.95;
+    }
+  }
+}
+
+/* ---------- 发动机 ---------- */
+function drawEngine(st) {
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0,0,W,H); ctx.clip();
+  const xStart = CHAMBER_X0, xEnd = EXIT_X;
+  const NS = 240;
+  for (let i = 0; i < NS; i++) {
+    const xa = xStart + (xEnd-xStart)*i/NS;
+    const xb = xStart + (xEnd-xStart)*(i+1)/NS;
+    const xm = 0.5*(xa+xb);
+    const xmm = (xm - THROAT_X)/PX;
+    const f = nozzleFlow(xmm, st.Pc);
+    const [cr,cg,cb] = tempColor(f.T);
+    ctx.fillStyle = `rgb(${cr},${cg},${cb})`;
+    ctx.fillRect(xa, AXIS_Y - f.r*PX, (xb-xa)+1, 2*f.r*PX);
+  }
+  const cgrad = ctx.createLinearGradient(CHAMBER_X0, 0, THROAT_X - CFG.Lc*PX, 0);
+  cgrad.addColorStop(0, 'rgba(255,255,255,0.28)');
+  cgrad.addColorStop(1, 'rgba(255,200,80,0.05)');
+  ctx.fillStyle = cgrad;
+  ctx.fillRect(CHAMBER_X0, AXIS_Y - rc*PX*0.92,
+               (THROAT_X-CFG.Lc*PX) - CHAMBER_X0, rc*PX*1.84);
+  ctx.restore();
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(150,190,235,0.90)';
+  ctx.lineWidth = 2.4;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(CHAMBER_X0, AXIS_Y - rc*PX);
+  ctx.lineTo(THROAT_X - CFG.Lc*PX, AXIS_Y - rc*PX);
+  ctx.lineTo(THROAT_X, AXIS_Y - rt*PX);
+  ctx.lineTo(EXIT_X, AXIS_Y - re*PX);
+  ctx.moveTo(CHAMBER_X0, AXIS_Y + rc*PX);
+  ctx.lineTo(THROAT_X - CFG.Lc*PX, AXIS_Y + rc*PX);
+  ctx.lineTo(THROAT_X, AXIS_Y + rt*PX);
+  ctx.lineTo(EXIT_X, AXIS_Y + re*PX);
+  ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(0,212,255,0.7)';
+  ctx.lineWidth = 1.1;
+  ctx.setLineDash([3,4]);
+  ctx.beginPath();
+  ctx.moveTo(THROAT_X, AXIS_Y - rt*PX - 14);
+  ctx.lineTo(THROAT_X, AXIS_Y + rt*PX + 14);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = 'rgba(0,212,255,0.85)';
+  ctx.font = '9.5px Consolas, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('THROAT  A*', THROAT_X, AXIS_Y - rt*PX - 18);
+  ctx.fillText('EXIT  Aₑ', EXIT_X, AXIS_Y + re*PX + 20);
+  ctx.restore();
+}
+
+/* =========================================================================
+   9. 主循环
+   ========================================================================= */
+let pcVal = 13.5, paVal = 0.101;
+let sweeping = false, sweepDir = 1;
+let lastT = performance.now();
+let curState = null;
+
+function loop() {
+  const now = performance.now();
+  const dt = Math.min(0.05, (now - lastT)/1000);
+  lastT = now;
+
+  if (sweeping) {
+    pcVal += sweepDir * 4.0 * dt;
+    if (pcVal > 19.8) { pcVal = 19.8; sweepDir = -1; }
+    if (pcVal < 0.4)  { pcVal = 0.4;  sweepDir = 1; }
+    syncSlider();
+  }
+
+  stepParticles(dt);
+  const st = solve(pcVal, paVal);
+  curState = st;
+
+  ctx.fillStyle = '#06090f';
+  ctx.fillRect(0, 0, W, H);
+  drawGrid();
+  drawPlume(st);
+  drawEngine(st);
+
+  updateUI(st);
+  requestAnimationFrame(loop);
+}
+
+/* =========================================================================
+   10. UI
+   ========================================================================= */
+const $ = id => document.getElementById(id);
+
+function updateUI(st) {
+  $('vDt').textContent = CFG.Dt.toFixed(3) + ' mm';
+  $('vDe').textContent = CFG.De.toFixed(3) + ' mm';
+  $('vAR').textContent = AR.toFixed(4);
+  $('vAlpha').textContent = (CFG.alpha*180/Math.PI).toFixed(1) + '°';
+
+  $('vMe').textContent = st.Me.toFixed(4);
+  $('vPe').textContent = st.Pe.toFixed(4) + ' MPa';
+  $('vTe').textContent = st.Te.toFixed(1) + ' K';
+  $('vVe').textContent = st.Ve.toFixed(1) + ' m/s';
+  $('vMdot').textContent = (st.mdot*1000).toFixed(3) + ' g/s';
+  $('vF').textContent = st.F.toFixed(2) + ' N';
+  $('vIsp').textContent = st.Isp.toFixed(1) + ' s';
+
+  const rho0 = (st.Pc*1e6)/(st.R*st.T0);
+  $('hP0').textContent = st.Pc.toFixed(3) + ' MPa';
+  $('hT0').textContent = st.T0.toFixed(0) + ' K';
+  $('hRho').textContent = rho0.toFixed(3) + ' kg/m³';
+  $('hMdot').textContent = (st.mdot*1000).toFixed(3) + ' g/s';
+  const ast = Math.sqrt(st.g*st.R*st.T0) * Math.sqrt(2/(st.g+1));
+  $('hAst').textContent = ast.toFixed(1) + ' m/s';
+  $('hCst').textContent = st.cstar.toFixed(1) + ' m/s';
+  $('hNPR').textContent = st.NPR.toFixed(4);
+  $('hLcell').textContent = st.Lcell > 0
+    ? st.Lcell.toFixed(2) + ' mm' : '—';
+  $('hRingN').textContent = st.ringCount;
+
+  const dot = $('lampDot'), txt = $('lampTxt');
+  dot.className = 'dot';
+  if (st.regime === 'under') {
+    dot.classList.add('u');
+    txt.textContent = `欠膨胀 · NPR=${st.NPR.toFixed(3)} · ${st.ringCount} 个马赫环`;
+  } else if (st.regime === 'over') {
+    dot.classList.add('o');
+    txt.textContent = `过膨胀 · NPR=${st.NPR.toFixed(3)} · 斜激波`;
+  } else {
+    dot.classList.add('m');
+    txt.textContent = `最佳膨胀 · NPR=${st.NPR.toFixed(3)}`;
+  }
+
+  // 提示面板
+  const tipOver = $('tipOver'), tipUnder = $('tipUnder');
+  if (st.regime === 'over') {
+    // 计算进入欠膨胀所需的临界 Pc：Pe = Pa
+    // Pa = Pc / (1+(γ-1)/2·Me²)^(γ/(γ-1))  →  Pc = Pa · ratio
+    const pr = Math.pow(1 + (st.g-1)/2 * st.Me*st.Me, st.g/(st.g-1));
+    const pcCrit = pr * paVal;
+    $('tipPc').textContent = pcCrit.toFixed(2);
+    tipOver.classList.add('show');
+    tipUnder.classList.remove('show');
+  } else if (st.regime === 'under') {
+    tipOver.classList.remove('show');
+    $('tipRingCnt').textContent = st.ringCount;
+    tipUnder.classList.add('show');
+  } else {
+    tipOver.classList.remove('show');
+    tipUnder.classList.remove('show');
+  }
+
+  $('hGamma').textContent = st.g.toFixed(3);
+  $('hR').textContent = st.R.toFixed(1);
+  $('hT0m').textContent = st.T0.toFixed(0);
+}
+
+function syncSlider() {
+  $('pcRange').value = pcVal.toFixed(2);
+  $('pcNum').value = pcVal.toFixed(2);
+}
+
+/* =========================================================================
+   11. 文件解析
+   ========================================================================= */
+const dropZone = $('dropZone');
+const fileInput = $('fileInput');
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+function handleFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array' });
+      parseWorkbook(wb);
+    } catch (err) {
+      alert('文件解析失败：' + err.message);
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function findVal(ws, label, off = 1) {
+  if (!ws || !ws['!ref']) return null;
+  const rng = XLSX.utils.decode_range(ws['!ref']);
+  for (let r = rng.s.r; r <= rng.e.r; r++)
+    for (let c = rng.s.c; c <= rng.e.c; c++) {
+      const cl = ws[XLSX.utils.encode_cell({r, c})];
+      if (!cl || cl.v == null) continue;
+      if (String(cl.v).trim() === label) {
+        const vc = ws[XLSX.utils.encode_cell({r, c: c+off})];
+        if (vc && vc.v != null) return vc.v;
+      }
+    }
+  return null;
+}
+function findRow(ws, label) {
+  if (!ws || !ws['!ref']) return null;
+  const rng = XLSX.utils.decode_range(ws['!ref']);
+  for (let r = rng.s.r; r <= rng.e.r; r++)
+    for (let c = rng.s.c; c <= rng.e.c; c++) {
+      const cl = ws[XLSX.utils.encode_cell({r, c})];
+      if (!cl || cl.v == null) continue;
+      if (String(cl.v).trim() === label) return r;
+    }
+  return null;
+}
+
+function parseWorkbook(wb) {
+  const found = {}, missed = [];
+  const set = (k, v) => {
+    if (v != null && !isNaN(parseFloat(v)) && parseFloat(v) !== 0) {
+      CFG[k] = parseFloat(v); found[k] = CFG[k];
+    } else if (typeof v === 'string' && v.length > 0) {
+      CFG[k] = v; found[k] = v;
+    } else missed.push(k);
+  };
+
+  const ws1 = wb.Sheets['数据和喷燃比'];
+  if (ws1) {
+    set('Dc', findVal(ws1, 'Dc', 1));
+    set('do_', findVal(ws1, 'do', 1));
+    set('Lo', findVal(ws1, 'Lo', 1));
+    const pt = findVal(ws1, 'Propellant type', 1);
+    if (pt) { CFG.propType = String(pt); found.propType = CFG.propType; }
+    const meop = findVal(ws1, 'Target MEOP:', 1);
+    if (meop) { CFG.targetMEOP = parseFloat(meop); found.targetMEOP = meop; }
+    const Ato = findVal(ws1, 'Ato', 1);
+    if (Ato) { CFG.Dt = 2*Math.sqrt(parseFloat(Ato)/Math.PI); found.Dt = CFG.Dt; }
+    const Dto = findVal(ws1, 'Dto', 1);
+    if (Dto) { CFG.Dt = parseFloat(Dto); found.Dt = CFG.Dt; }
+  } else missed.push('数据和喷燃比');
+
+  const ws2 = wb.Sheets['性能'];
+  if (ws2) {
+    set('gamma', findVal(ws2, 'k', 1));
+    set('hnoz', findVal(ws2, 'h noz', 1));
+    set('Pa', findVal(ws2, 'Patm', 1));
+    const de = findVal(ws2, 'De', 1);
+    if (de && parseFloat(de) > 1) { CFG.De = parseFloat(de); found.De = CFG.De; }
+    const meo = findVal(ws2, 'Meo', 1);
+    if (meo) { CFG.Me_ref = parseFloat(meo); found.Me_ref = CFG.Me_ref; }
+    const arRow = findRow(ws2, 'Ae/At');
+    if (arRow != null) {
+      const rng = XLSX.utils.decode_range(ws2['!ref']);
+      for (let c = rng.s.c; c <= rng.e.c; c++) {
+        const cl = ws2[XLSX.utils.encode_cell({r: arRow, c})];
+        if (cl && cl.v != null && !isNaN(parseFloat(cl.v))) {
+          const v = parseFloat(cl.v);
+          if (v > 1 && v < 100) { found.AR_file = v; break; }
+        }
+      }
+    }
+  } else missed.push('性能');
+
+  const ws3 = wb.Sheets['压强'];
+  if (ws3) {
+    set('R', findVal(ws3, 'R', 1));
+    set('gamma', findVal(ws3, 'k', 1));
+    set('hc', findVal(ws3, 'hc', 1));
+    set('T0_ideal', findVal(ws3, 'To', 1));
+    set('T0', findVal(ws3, 'To act', 1));
+    set('M', findVal(ws3, 'M', 1));
+    const cst = findVal(ws3, 'c*', 1);
+    if (cst) { CFG.cstar_ref = parseFloat(cst); found.cstar_ref = CFG.cstar_ref; }
+    const pmax = findVal(ws3, 'Pmax =', 1);
+    if (pmax) { CFG.Pmax_ref = parseFloat(pmax); found.Pmax_ref = CFG.Pmax_ref; }
+  } else missed.push('压强');
+
+  if (found.AR_file) {
+    CFG.De = CFG.Dt * Math.sqrt(found.AR_file);
+    found.De_from_AR = CFG.De;
+  }
+  recomputeGeometry();
+
+  $('srcBadge').textContent = `已加载 · ${wb.SheetNames.length} 张表`;
+  $('srcBadge').classList.add('ok');
+
+  // 显示结果
+  let html = '';
+  const labels = {
+    Dt: 'D_t 喉径', De: 'D_e 出口径',
+    gamma: 'γ 比热比', R: 'R 气体常数',
+    T0: 'T₀ 实际温度', T0_ideal: 'T₀ 理想温度',
+    Pa: 'P_atm', hnoz: 'η_noz', hc: 'η_c',
+    propType: '推进剂', targetMEOP: '设计 MEOP',
+    cstar_ref: 'c* (文件)', Me_ref: 'M_e (文件)',
+    AR_file: 'A_e/A_t (文件)', Pmax_ref: 'Pmax (文件)',
+  };
+  for (const k in labels) {
+    if (found[k] !== undefined) {
+      const v = typeof found[k] === 'number' ? found[k].toFixed(4) : found[k];
+      html += `${labels[k]}: <b style="color:#00ff9d">${v}</b><br>`;
+    }
+  }
+  if (missed.length) html += `<span style="color:#ff4d4d">未找到: ${missed.join(', ')}</span>`;
+  $('parsedList').innerHTML = html;
+
+  // 物理自检
+  const st = solve(CFG.targetMEOP, CFG.Pa);
+  console.log('%c=== 文件解析后校验 ===', 'color:#00d4ff;font-weight:bold');
+  console.log(`  A_e/A_t 计算: ${AR.toFixed(5)}   (文件: ${found.AR_file ?? '—'})`);
+  console.log(`  M_e     计算: ${st.Me.toFixed(5)}   (文件: ${CFG.Me_ref})`);
+  console.log(`  c*      计算: ${st.cstar.toFixed(2)}  (文件: ${CFG.cstar_ref})`);
+  console.log(`  Pc=8 MPa 时 NPR = ${st.NPR.toFixed(4)} → ${st.regime}`);
+
+  // 若解析出 Pmax，默认设到 Pmax 附近（此时通常欠膨胀，可见马赫环）
+  if (found.Pmax_ref && found.Pmax_ref > 10) {
+    pcVal = Math.min(20, found.Pmax_ref * 0.95);
+    syncSlider();
+  }
+
+  resize();
+}
+
+/* =========================================================================
+   12. 事件
+   ========================================================================= */
+$('pcRange').addEventListener('input', e => {
+  pcVal = parseFloat(e.target.value);
+  $('pcNum').value = pcVal.toFixed(2);
+});
+$('pcNum').addEventListener('change', e => {
+  let v = parseFloat(e.target.value);
+  if (isNaN(v)) v = 13.5;
+  v = Math.max(0.3, Math.min(20, v));
+  pcVal = v; $('pcRange').value = v; e.target.value = v.toFixed(2);
+});
+$('paNum').addEventListener('change', e => {
+  let v = parseFloat(e.target.value);
+  if (isNaN(v) || v <= 0) v = 0.101;
+  v = Math.max(0.0001, Math.min(0.5, v));
+  paVal = v; e.target.value = v.toFixed(3);
+});
+$('btnSweep').addEventListener('click', () => { sweeping = true; $('btnSweep').classList.add('on'); });
+$('btnStop').addEventListener('click', () => { sweeping = false; $('btnSweep').classList.remove('on'); });
+$('btnSL').addEventListener('click', () => {
+  paVal = 0.101; $('paNum').value = '0.101'; setActive('btnSL');
+});
+$('btnAlt').addEventListener('click', () => {
+  paVal = 0.0264; $('paNum').value = '0.026'; setActive('btnAlt');
+});
+$('btnVac').addEventListener('click', () => {
+  paVal = 0.0001; $('paNum').value = '0.0001'; setActive('btnVac');
+});
+function setActive(id) {
+  ['btnSL','btnAlt','btnVac'].forEach(b => $(b).classList.remove('on'));
+  $(id).classList.add('on');
+}
+
+/* =========================================================================
+   13. 启动
+   ========================================================================= */
+resize();
+initParticles();
+requestAnimationFrame(loop);
+
+(function selfTest() {
+  const st = solve(13.5, 0.101);
+  console.log('%c=== 默认工况自检 (Pc=13.5MPa) ===', 'color:#00d4ff;font-weight:bold');
+  console.log(`  M_e = ${st.Me.toFixed(4)}`);
+  console.log(`  P_e = ${st.Pe.toFixed(4)} MPa  (Pa=${st.Pa})`);
+  console.log(`  NPR = ${st.NPR.toFixed(4)}  → ${st.regime}`);
+  console.log(`  L_cell = ${st.Lcell.toFixed(2)} mm`);
+  console.log(`  激波胞格数 = ${st.ringCount}`);
+  const rings = machRings(st);
+  rings.forEach(r => console.log(`    环 #${r.idx} @ x=${r.x.toFixed(2)}mm`));
+})();
+</script>
+</body>
+</html>
